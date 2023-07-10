@@ -1,7 +1,10 @@
 import { Inter } from "next/font/google";
+import Sidebar from "./app/components/Sidebar";
+import Header from "./app/components/Header";
+
 import "@/app/globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const font = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "Create Next App",
@@ -15,10 +18,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <div className="bg-red-800">
-          {children}This is the tholattice dashboard layout
+      <body className={font.className}>
+        <div className="justify-between bg-white">
+          <Sidebar />
         </div>
+        <main className="ml-20 min-h-screen">
+          <Header />
+          {children}
+        </main>
       </body>
     </html>
   );
