@@ -57,7 +57,7 @@ const AuthClient = () => {
           variables: {
             default: {
               colors: {
-                brandAccent: "#f5f4f5",
+                brandAccent: "#57504f",
                 brand: "#292524",
                 brandButtonText: "#f5f4f5",
                 defaultButtonText: "#292524",
