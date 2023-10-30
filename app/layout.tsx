@@ -6,7 +6,7 @@ import { Noto_Sans } from "next/font/google";
 
 import Header from "../components/Header";
 import Footer from "./components/Footer";
-import MobileHeader from "../components/MobileHeader";
+// import MobileHeader from "../components/MobileHeader";
 import Background from "./components/Background";
 
 import Providers from "./providers";
