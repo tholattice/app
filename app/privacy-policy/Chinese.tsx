@@ -4,7 +4,7 @@ export const ChineseIntrouction = () => {
   return (
     <p>
       欢迎来到 Tholattice 数字营销！本隐私政策概述了 Tholattice Digital
-      Marketing LLC (位于 1637 Burning Tree Dr., Hundred Oaks, CA 91362, United
+      Marketing LLC (位于 1637 Burning Tree Dr., Thousand Oaks, CA 91362, United
       States) (&quot;Tholattice Digital Marketing,
       &quot;我们&quot;、&quot;我们的&quot;或&quot;我们的&quot;)如何收集、使用、当您访问我们的网站{" "}
       <Link href="/">https://www.tholattice.com</Link> (“网站”)
