@@ -1,0 +1,17 @@
+/* ./styles/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* button:focus {
+    outline-color: #292524
+} */
+
+@layer components {
+    .lifeGradientText {
+        @apply bg-gradient-to-r from-stone-300 via-blue-300 to-green-500 bg-clip-text text-transparent bg-300% animate-gradient;
+    };
+    .lifeGradientButtonBg {
+        @apply bg-gradient-to-r from-stone-300 via-blue-300 to-green-500 bg-300% animate-gradient
+    }
+}
