@@ -60,7 +60,7 @@ const NewMobileHeader = () => {
           open && "block"
         )}
       >
-        <ul className="grid divide-y divide-gray-200">
+        <ul className="grid divide-y divide-gray-200 p-4">
           <li className="py-3">
             <button
               className="flex w-full justify-between"
