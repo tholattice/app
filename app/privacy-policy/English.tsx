@@ -4,13 +4,13 @@ export const EnglishIntrouction = () => {
   return (
     <p>
       Welcome to Tholattice Digital Marketing! This Privacy Policy outlines how
-      Tholattice Digital Marketing LLC, located at 1637 Burning Tree Dr.,
-      Thousand Oaks, CA 91362, United States (&quot;Tholattice Digital
-      Marketing,&quot; &quot;we,&quot; &quot;our,&quot; or &quot;us&quot;),
-      collects, uses, and protects personal information when you visit our
-      website <Link href="/">https://www.tholattice.com</Link> (&quot;the
-      Website&quot;) and use our web and mobile applications (collectively,
-      &quot;the Services&quot;).
+      Tholattice Digital Marketing LLC, located at Burning Tree Dr., Thousand
+      Oaks, CA 91362, United States (&quot;Tholattice Digital Marketing,&quot;
+      &quot;we,&quot; &quot;our,&quot; or &quot;us&quot;), collects, uses, and
+      protects personal information when you visit our website{" "}
+      <Link href="/">https://www.tholattice.com</Link> (&quot;the Website&quot;)
+      and use our web and mobile applications (collectively, &quot;the
+      Services&quot;).
     </p>
   );
 };
