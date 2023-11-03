@@ -22,7 +22,7 @@ export default function LoginPage() {
         target="_blank"
         className="absolute right-3 top-3 rounded-full border border-gray-300 px-4 py-1 text-xs font-medium shadow-[inset_10px_-50px_94px_0_rgb(199,199,199,0.1)] backdrop-blur transition-all hover:border-gray-500 hover:bg-white/50"
       >
-        We've rebranded! This needs to change too
+        We&apos;ve rebranded! This needs to change too
       </a>
       <div className="flex flex-col items-center justify-center space-y-3 border-b border-gray-200 bg-white px-4 py-6 pt-8 text-center sm:px-16">
         <a href={HOME_DOMAIN}>

@@ -5,7 +5,7 @@ import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Loader from "@/app/components/Loader";
 
-import "@/app/globals.css";
+import "@/globals.css";
 
 import { stripe } from "@/lib/stripe";
 
