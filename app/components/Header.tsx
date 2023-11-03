@@ -13,7 +13,7 @@ import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
 import { cn } from "@/utils/merge";
 import useScroll from "@/hooks/use-scroll";
 
-import { useTranslationContext } from "../app/providers";
+import { useTranslationContext } from "../providers";
 import { ChevronDown } from "lucide-react";
 
 export const navItems = [

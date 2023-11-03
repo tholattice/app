@@ -12,7 +12,7 @@ import Script from "next/script";
 import { ExternalLink, HelpCircle } from "lucide-react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
-import { DomainProps } from "@/types/domain";
+import { DomainProps } from "@/lib/types/domain";
 import useMediaQuery from "@/hooks/use-media-query";
 
 import CheckCircleFill from "./CheckCircleFill";

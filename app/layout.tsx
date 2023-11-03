@@ -4,13 +4,13 @@ import { cn } from "@/utils/merge";
 // import { Inter, Merriweather, Noto_Sans } from "next/font/google";
 import { Noto_Sans } from "next/font/google";
 
-import Header from "../components/Header";
+import Header from "./components/Header";
 import Footer from "./components/Footer";
 // import MobileHeader from "../components/MobileHeader";
 import Background from "./components/Background";
 
 import Providers from "./providers";
-import NewMobileHeader from "@/components/NewMobileHeader";
+import NewMobileHeader from "@/app/components/NewMobileHeader";
 
 // const inter = Inter({ subsets: ["latin"] });
 // const merriweather = Merriweather({ subsets: ["latin"], weight: "300" });

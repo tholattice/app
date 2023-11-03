@@ -37,7 +37,7 @@ const PricingPage = () => {
       > */}
       {/* <div> */}
       <Pricing />
-      <Logos />
+      {/* <Logos /> */}
       {/* </div> */}
       {/* <FAQ /> */}
       {/* </AnimatePresenceWrapper> */}

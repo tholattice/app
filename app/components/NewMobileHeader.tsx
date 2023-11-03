@@ -7,7 +7,7 @@ import { ChevronDown, Menu, X } from "lucide-react";
 import { cn } from "@/utils/merge";
 
 import { languages, navItems } from "./Header";
-import { useTranslationContext } from "../app/providers";
+import { useTranslationContext } from "../providers";
 
 export const mobileNavLoginItems = [
   {

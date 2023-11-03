@@ -2,8 +2,8 @@ import Image from "next/image";
 
 import { PLANS } from "@/lib/stripe/utils";
 
-import { SimpleTooltipContent } from "@/components/Tooltip";
-import { IPricingItems } from "@/types/pricing";
+import { SimpleTooltipContent } from "@/app/components/Tooltip";
+import { IPricingItems } from "@/lib/types/pricing";
 
 export const EnglishPricingHeadline = () => {
   return (

@@ -1,0 +1,243 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  owner
+  admin
+  masseuse
+  client
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  // if you are using Github OAuth, you can get rid of the username attribute (that is for Twitter OAuth)
+  // username       String?
+  // Got rid of username because it will either be email or WeChat username 
+  // gh_username   String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  role          Role[]
+  // You can be a client and a masseuse at the same time
+  accounts      Account[]
+  // So a user can have a list of Accounts associated with it? I believe accounts here mean Github, Google and other integrated accounts. Could be for login authentication or other related integrations? Not sure yet
+  sessions      Session[]
+  sites         Site[]
+  posts         Post[]
+  tokens        Token[]
+  subscriptions Subscription[]
+  locations     Location[]
+  appointments  Appointment[]
+
+  masseuse Masseuse?
+  client   Client?
+
+  @@unique([name, id])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Masseuse {
+  id             String  @id @default(cuid())
+  wechatUsername String? // Figure out what to call this row for WeChat ID's, not all users have wechatUsernames depending on if they're masseuse or not.
+  user           User    @relation(fields: [masseuseName, masseuseId], references: [name, id])
+  masseuseName   String
+  masseuseId     String
+
+  Appointment Appointment[]
+
+  @@unique([masseuseName, masseuseId])
+}
+
+model Client {
+  id         String @id @default(cuid())
+  user       User   @relation(fields: [clientName, clientId], references: [name, id])
+  clientName String
+  clientId   String
+
+  Appointment Appointment[]
+
+  @@unique([clientName, clientId])
+}
+
+model MassageAppointment {
+  id            String      @id @default(cuid())
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  massageType   MassageType
+  appointmentId String
+}
+
+model Appointment {
+  id              String   @id @default(cuid())
+  appointmentDate DateTime
+  duration        Int // Duration of the appointment in minutes
+
+  masseuse                Masseuse @relation(fields: [masseuseAppointmentName, masseuseAppointmentId], references: [masseuseName, masseuseId])
+  masseuseAppointmentName String
+  masseuseAppointmentId   String
+
+  client                Client @relation(fields: [clientAppointmentName, clientAppointmentId], references: [clientName, clientId])
+  clientAppointmentName String
+  clientAppointmentId   String
+
+  location   Location @relation(fields: [locationId], references: [id])
+  locationId String
+
+  MassageAppointment MassageAppointment[]
+
+  User   User?   @relation(fields: [userId], references: [id])
+  userId String?
+}
+
+enum MassageType {
+  body
+  foot
+}
+
+model Location {
+  id          String  @id @default(cuid())
+  name        String
+  address     String
+  city        String
+  state       String
+  postalCode  String
+  country     String
+  latitude    Float?
+  longitude   Float?
+  phoneNumber String?
+
+  user    User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  Appointment Appointment[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Are verification tokens used specifically for Google properties? If so, why doesn't this model have a relation to the User model.
+
+// Not sure why verification tokens are necessary. Also, why aren't related to some User? Are these used for resetting emails, passwords, verifying emails? Not sure
+
+model Token {
+  id         String    @id @default(cuid())
+  name       String
+  hashedKey  String    @unique
+  partialKey String
+  expires    DateTime?
+  lastUsed   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+
+  @@index([userId])
+}
+
+// I'm still unsure why this model needs to exists. We already have Seesion and Account models that hold access, session, and refresh tokens for logged in users and various account integrations. 
+
+// So it appears this schema automatically created a field in my User model for tokens. I understand that now each user can have multiple hashed token keys associated with it, but what resources does the user need access to that this type of data structure model and relationship would provide?
+
+model Post {
+  id            String   @id @default(cuid())
+  title         String?  @db.Text
+  description   String?  @db.Text
+  content       String?  @db.Text
+  slug          String   @default(cuid())
+  image         String?  @db.Text
+  imageBlurhash String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  published     Boolean  @default(false)
+  site          Site?    @relation(fields: [siteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  siteId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId        String?
+
+  // Having custom indexes makes sense for the Post model. I can think of many more instances of read operations rather than write operations. Ideal for a model that will contain a very large number of rows.
+
+  @@unique([slug, siteId])
+  // Not sure if this compound constraint should exist. Various siteIds can have multiple slugs
+  @@index([siteId])
+  @@index([userId])
+}
+
+model Site {
+  id            String   @id @default(cuid())
+  name          String?
+  description   String?  @db.Text
+  logo          String?  @db.Text
+  font          String   @default("font-cal")
+  // The default font may need to change. Lots more custom values to add to this model.
+  image         String?  @db.Text
+  imageBlurhash String?  @db.Text
+  subdomain     String?  @unique
+  customDomain  String?  @unique
+  message404    String?  @default("You've found a page that doesn't exist.") @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId        String?
+  posts         Post[]
+
+  @@index([userId])
+}
+
+model Subscription {
+  id                String @id @default(cuid())
+  plan              String
+  role              Role   @unique
+  stripeId          String @unique // Stripe subscription ID
+  billingCycleStart Int // day of the month when the billing cycle starts
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

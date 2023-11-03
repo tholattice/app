@@ -16,7 +16,7 @@ import {
   AccordionTrigger,
 } from "./Accordion";
 
-import { useTranslationContext } from "../app/providers";
+import { useTranslationContext } from "../providers";
 
 export const mobileNavLoginItems = [
   {

@@ -1,6 +1,6 @@
 "use client";
 
-import AnimatePresenceWrapper from "@/components/AnimatePresenceWrapper";
+import AnimatePresenceWrapper from "@/app/components/AnimatePresenceWrapper";
 import Hero from "./Hero";
 import Logos from "./components/CustomerLogos";
 // import Services from "./services/Services";

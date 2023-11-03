@@ -6,11 +6,11 @@ import Link from "next/link";
 import { HelpCircle, MinusCircle } from "lucide-react";
 import Confetti from "react-dom-confetti";
 
-import CheckCircleFill from "../../components/CheckCircleFill";
-import XCircleFill from "../../components/XCircleFill";
-import MaxWidthWrapper from "../../components/MaxWidthWrapper";
-import Switch from "../../components/Switch";
-import Tooltip from "../../components/Tooltip";
+import CheckCircleFill from "../components/CheckCircleFill";
+import XCircleFill from "../components/XCircleFill";
+import MaxWidthWrapper from "../components/MaxWidthWrapper";
+import Switch from "../components/Switch";
+import Tooltip from "../components/Tooltip";
 
 import { PLANS } from "@/lib/stripe/utils";
 import { nFormatter } from "@/utils/format";
@@ -229,7 +229,7 @@ const Pricing = () => {
                                       </div>
                                       {subFootnote ? (
                                         <div className="flex items-center space-x-1">
-                                          <p
+                                          <div
                                             className={
                                               subNegative
                                                 ? "text-gray-400"
@@ -237,13 +237,13 @@ const Pricing = () => {
                                             }
                                           >
                                             {subContent}
-                                          </p>
+                                          </div>
                                           <Tooltip content={subFootnote}>
                                             <HelpCircle className="h-4 w-4 text-gray-600 flex-shrink-0" />
                                           </Tooltip>
                                         </div>
                                       ) : (
-                                        <p
+                                        <div
                                           className={
                                             subNegative
                                               ? "text-gray-400"
@@ -251,7 +251,7 @@ const Pricing = () => {
                                           }
                                         >
                                           {subContent}
-                                        </p>
+                                        </div>
                                       )}
                                     </li>
                                   )
@@ -410,7 +410,7 @@ const Pricing = () => {
                                       </div>
                                       {subFootnote ? (
                                         <div className="flex items-center space-x-1">
-                                          <p
+                                          <div
                                             className={
                                               subNegative
                                                 ? "text-gray-400"
@@ -418,13 +418,13 @@ const Pricing = () => {
                                             }
                                           >
                                             {subContent}
-                                          </p>
+                                          </div>
                                           <Tooltip content={subFootnote}>
                                             <HelpCircle className="h-4 w-4 text-gray-600 flex-shrink-0" />
                                           </Tooltip>
                                         </div>
                                       ) : (
-                                        <p
+                                        <div
                                           className={
                                             subNegative
                                               ? "text-gray-400"
@@ -432,7 +432,7 @@ const Pricing = () => {
                                           }
                                         >
                                           {subContent}
-                                        </p>
+                                        </div>
                                       )}
                                     </li>
                                   )
