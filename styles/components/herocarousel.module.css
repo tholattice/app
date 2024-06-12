@@ -1,0 +1,65 @@
+/* herocarousel.module.css */
+/* .carouselItem {
+    position: relative;
+  }
+  
+.carouselContent {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #fff;
+    width: 100%;
+  } */
+
+/* herocarousel.module.css */
+.carousel {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  }
+  
+  .carouselItem {
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+  
+  .carouselItem.active {
+    opacity: 1;
+    z-index: 1; /* Ensure the active slide is on top of others */
+  }
+  
+  .carouselContent {
+    color: white;
+    z-index: 2; /* Ensure the content is on top of the image */
+  }
+  
+  .dots {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+  }
+  
+  .dot {
+    width: 10px;
+    height: 10px;
+    background-color: white;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  
+  .activeDot {
+    background-color: pink;
+  }
+  
+  /* Add your additional styles as needed */
+  

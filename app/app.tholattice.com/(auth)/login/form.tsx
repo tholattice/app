@@ -7,19 +7,19 @@ import { useSearchParams } from "next/navigation";
 
 import { toast } from "sonner";
 
-import Button from "@/app/components/Button";
-import { InfoTooltip } from "@/app/components/Tooltip";
+import Button from "@/components/Button";
+import { InfoTooltip } from "@/components/Tooltip";
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams?.get("next");
   const [showEmailOption, setShowEmailOption] = useState(false);
-  const [showSSOOption, setShowSSOOption] = useState(false);
   const [noSuchAccount, setNoSuchAccount] = useState(false);
   const [email, setEmail] = useState("");
-  const [clickedGoogle, setClickedGoogle] = useState(false);
   const [clickedEmail, setClickedEmail] = useState(false);
-  const [clickedSSO, setClickedSSO] = useState(false);
+  // const [showSSOOption, setShowSSOOption] = useState(false);
+  // const [clickedGoogle, setClickedGoogle] = useState(false);
+  // const [clickedSSO, setClickedSSO] = useState(false);
 
   useEffect(() => {
     const error = searchParams?.get("error");
@@ -44,33 +44,37 @@ export default function LoginForm() {
         onSubmit={async (e) => {
           e.preventDefault();
           setClickedEmail(true);
-          fetch("/api/auth/account-exists", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email }),
+          // fetch("/api/auth/account-exists", {
+          //   method: "POST",
+          //   headers: { "Content-Type": "application/json" },
+          //   body: JSON.stringify({ email }),
+          // })
+          //   .then(async (res) => {
+          //     const { exists } = await res.json();
+          //     if (exists) {
+          await signIn("email", {
+            email,
+            redirect: false,
+            ...(next && next.length > 0 ? { callbackUrl: next } : {}),
           })
-            .then(async (res) => {
-              const { exists } = await res.json();
-              if (exists) {
-                signIn("email", {
-                  email,
-                  redirect: false,
-                  ...(next && next.length > 0 ? { callbackUrl: next } : {}),
-                }).then((res) => {
-                  setClickedEmail(false);
-                  if (res?.ok && !res?.error) {
-                    setEmail("");
-                    toast.success("Email sent - check your inbox!");
-                  } else {
-                    toast.error("Error sending email - try again?");
-                  }
-                });
+            .then((res) => {
+              setClickedEmail(false);
+              if (res?.ok && !res?.error) {
+                setEmail("");
+                toast.success("Email sent - check your inbox!");
               } else {
-                toast.error("No account found with that email address.");
-                setNoSuchAccount(true);
-                setClickedEmail(false);
+                toast.error("Error sending email - try again?");
               }
             })
+
+            // else {
+            //   toast.error("No account found with that email address.");
+            //   setNoSuchAccount(true);
+            //   setClickedEmail(false);
+            // }
+
+            // TODO: Get account-exists API route working, so that it connects to Supabase, commented this out for now.
+
             .catch(() => {
               setClickedEmail(false);
               toast.error("Error sending email - try again?");
@@ -86,7 +90,7 @@ export default function LoginForm() {
               name="email"
               autoFocus
               type="email"
-              placeholder="panic@thedis.co"
+              placeholder="yuki@gee.co"
               autoComplete="email"
               required
               value={email}
@@ -105,15 +109,16 @@ export default function LoginForm() {
             type: "button",
             onClick: (e) => {
               e.preventDefault();
-              setShowSSOOption(false);
+              console.log("yes");
+              // setShowSSOOption(false);
               setShowEmailOption(true);
             },
           })}
           loading={clickedEmail}
-          disabled={clickedGoogle || clickedSSO}
+          // disabled={clickedGoogle || clickedSSO}
         />
       </form>
-      <form
+      {/* <form
         onSubmit={async (e) => {
           e.preventDefault();
           setClickedSSO(true);
@@ -172,7 +177,7 @@ export default function LoginForm() {
           loading={clickedSSO}
           disabled={clickedGoogle || clickedEmail}
         />
-      </form>
+      </form> */}
       {noSuchAccount ? (
         <p className="text-center text-sm text-red-500">
           No such account.{" "}

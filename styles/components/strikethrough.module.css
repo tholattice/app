@@ -1,0 +1,28 @@
+/* strikethrough.module.css */
+.strikethrough {
+    position: relative;
+  }
+  .strikethrough:before {
+    position: absolute;
+    content: "";
+    left: 15%;
+    top: 45%;
+    right: 0;
+    width: 75%;
+    border-top: 2px solid;
+    border-color: black opacity(0.75);
+    
+    -webkit-transform:rotate(-45deg);
+    -moz-transform:rotate(-45deg);
+    -ms-transform:rotate(-45deg);
+    -o-transform:rotate(-45deg);
+    transform:rotate(-45deg);
+  }
+
+.pointerEventsNone {
+    pointer-events: none;
+}
+
+.cursorNotAllowedWrapper {
+    cursor: not-allowed;
+}

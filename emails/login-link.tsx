@@ -16,7 +16,7 @@ import {
 import Footer from "./components/footer";
 
 export default function LoginLink({
-  email = "panic@thedis.co",
+  email = "yuki@gee.co",
   url = "http://localhost:3000/api/auth/callback/email?callbackUrl=http%3A%2F%2Fapp.localhost%3A3000%2Flogin&token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&email=youremail@gmail.com",
 }: {
   email: string;
@@ -32,9 +32,11 @@ export default function LoginLink({
             <Section className="mt-8">
               <Img
                 src={THOLATTICE_LOGO}
+                // TODO: the Tholattice_Logo needs to be store somewhere publicly accessible.
+                // src="https://www.tholattice.com/_next/image?url=%2FTholattice_HorizontalChinese_111322.png&w=640&q=75"
                 width="40"
                 height="40"
-                alt="Dub"
+                alt="Tholattice Logo"
                 className="mx-auto my-0"
               />
             </Section>

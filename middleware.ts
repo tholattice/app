@@ -1,36 +1,57 @@
-import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
-
-import { AppMiddleware, RootMiddleware } from "./lib/middleware";
-import { parse } from "./lib/middleware/utils";
-
-import { APP_HOSTNAMES } from "./utils/constants";
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 export const config = {
-    matcher: [
-        /*
+  matcher: [
+    /*
      * Match all paths except for:
-     * 1. /api/ routes
-     * 2. /_next/ (Next.js internals)
-     * 3. /_proxy/ (special page for OG tags proxying)
-     * 4. /_static (inside /public)
-     * 5. /_vercel (Vercel internals)
-     * 6. /favicon.ico, /sitemap.xml, /robots.txt (static files)
+     * 1. /api routes
+     * 2. /_next (Next.js internals)
+     * 3. /_static (inside /public)
+     * 4. all root files inside /public (e.g. /favicon.ico)
      */
-    "/((?!api/|_next/|_proxy/|_static|_vercel|favicon.ico|sitemap.xml|robots.txt).*)",
-    ],
+    "/((?!api/|_next/|_static/|_vercel|[\\w-]+\\.\\w+).*)",
+  ],
 };
 
-export default async function middleware(req: NextRequest, ev: NextFetchEvent) {
-    const {domain, path, key} = parse(req);
+export default async function middleware(req: NextRequest) {
+  const url = req.nextUrl;
 
-    // for App
-    if (APP_HOSTNAMES.has(domain)) {
-        return AppMiddleware(req);
+  // Get hostname of request (e.g. demo.vercel.pub, demo.localhost:3000)
+  const hostname = req.headers
+    .get("host")!
+    .replace(".localhost:3000", `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`);
+
+  const searchParams = req.nextUrl.searchParams.toString();
+  // Get the pathname of the request (e.g. /, /about, /blog/first-post)
+  const path = `${url.pathname}${
+    searchParams.length > 0 ? `?${searchParams}` : ""
+  }`;
+
+  // rewrites for app pages
+  if (hostname == `app.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
+    const session = await getToken({ req });
+
+    if (!session && path !== "/login" && path !== '/register') {
+      return NextResponse.redirect(new URL("/login", req.url));
+    } else if (session && path == "/login") {
+      return NextResponse.redirect(new URL("/", req.url));
     }
 
+    return NextResponse.rewrite(
+      new URL(`/app.tholattice.com${path === "/" ? "" : path}`, req.url),
+    );
+  }
 
-    // for root pages (e.g. tholattice.com)
-    if (key.length === 0) {
-        return RootMiddleware(req, ev)
-    }
+  // rewrite root application to `/home` folder
+  if (
+    hostname === "localhost:3000" ||
+    hostname === process.env.NEXT_PUBLIC_ROOT_DOMAIN
+  ) {
+    return NextResponse.rewrite(
+      new URL(`/tholattice.com${path === "/" ? "" : path}`, req.url),
+    );
+  }
+  // rewrite everything else to `/[domain]/[slug] dynamic route
+  return NextResponse.rewrite(new URL(`/${hostname}${path}`, req.url));
 }

@@ -1,6 +1,7 @@
-import { nanoid } from "@/utils/misc";
 import { JSXElementConstructor, ReactElement } from "react";
 import { Resend } from "resend";
+
+import { nanoid } from "@/utils/misc";
 
 export const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)

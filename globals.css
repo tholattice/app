@@ -7,11 +7,15 @@
     outline-color: #292524
 } */
 
+html, body {
+    overflow-x: hidden;
+}
+
 @layer components {
     .lifeGradientText {
-        @apply bg-gradient-to-r from-stone-300 via-blue-300 to-green-500 bg-clip-text text-transparent bg-300% animate-gradient;
+        @apply bg-gradient-to-r from-[#D6D3D1] via-blue-300 to-green-500 bg-clip-text text-transparent bg-300% animate-gradient;
     };
     .lifeGradientButtonBg {
-        @apply bg-gradient-to-r from-stone-300 via-blue-300 to-green-500 bg-300% animate-gradient
+        @apply bg-gradient-to-r from-[#D6D3D1] via-blue-300 to-green-500 bg-300% animate-gradient
     }
 }

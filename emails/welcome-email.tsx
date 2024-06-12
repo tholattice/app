@@ -1,5 +1,3 @@
-import { THOLATTICE_LOGO, THOLATTICE_THUMBNAIL } from "@/utils/constants";
-
 import {
   Body,
   Container,
@@ -15,9 +13,11 @@ import {
 } from "@react-email/components";
 import Footer from "./components/footer";
 
+import { THOLATTICE_LOGO, THOLATTICE_THUMBNAIL } from "@/utils/constants";
+
 export default function WelcomeEmail({
-  name = "Brendon Urie",
-  email = "panic@thedis.co",
+  name = "Alex Thompson",
+  email = "alex@tholattice.com",
 }: {
   name: string | null;
   email: string;

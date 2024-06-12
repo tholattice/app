@@ -82,3 +82,39 @@ export function unixDateToNative(date: number) {
 
   return fullDate
 }
+
+export const toDateString = (date: Date) => {
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+export function formatTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+export function extractDate(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+export function formatPhoneNumber(phoneNumberString: string, int: boolean) {
+  var cleaned = ('' + phoneNumberString).replace(/\D/g, '');
+
+  if (int) {
+  var match = cleaned.match(/^(1|)?(\d{3})(\d{3})(\d{4})$/);
+
+  if (match) {
+    var intlCode = (match[1] ? '+1 ' : '');
+    return [intlCode, '(', match[2], ') ', match[3], '-', match[4]].join('');
+  }} else {
+    var match = cleaned.match(/(\d{3})(\d{3})(\d{4})$/);
+
+    if (match) {
+      return ['(', match[1], ') ', match[2], '-', match[3]].join('');
+    }
+  }
+  
+  return null;
+}
