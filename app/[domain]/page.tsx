@@ -14,38 +14,36 @@ import Testimonials from "@/styles/components/Testimonials";
 import LowerCTA from "@/styles/components/LowerCTA";
 import Contact from "@/styles/components/Contact";
 
-export async function generateStaticParams() {
-  const allSites = await prisma.site.findMany({
-    select: {
-      subdomain: true,
-      customDomain: true,
-    },
-    // feel free to remove this filter if you want to generate paths for all sites
-    // where: {
-    //   subdomain: "demo",
-    // },
-  });
+// Disabled static generation to avoid database connection issues during build
+// export async function generateStaticParams() {
+//   const allSites = await prisma.site.findMany({
+//     select: {
+//       subdomain: true,
+//       customDomain: true,
+//     },
+//   });
 
-  const allPaths = allSites
-    .flatMap(({ subdomain, customDomain }) => [
-      subdomain && {
-        domain: `${subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`,
-      },
-      customDomain && {
-        domain: customDomain,
-      },
-    ])
-    .filter(Boolean);
+//   const allPaths = allSites
+//     .flatMap(({ subdomain, customDomain }) => [
+//       subdomain && {
+//         domain: `${subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`,
+//       },
+//       customDomain && {
+//         domain: customDomain,
+//       },
+//     ])
+//     .filter(Boolean);
 
-  return allPaths;
-}
+//   return allPaths;
+// }
 
 export default async function TenantHomePage({
   params,
 }: {
-  params: { domain: string };
+  params: Promise<{ domain: string }>;
 }) {
-  const domain = decodeURIComponent(params.domain);
+  const { domain: domainParam } = await params;
+  const domain = decodeURIComponent(domainParam);
   const [data, posts] = await Promise.all([
     getSiteData(domain),
     getPostsForSite(domain),

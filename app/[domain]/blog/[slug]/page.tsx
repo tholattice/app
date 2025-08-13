@@ -9,10 +9,11 @@ import { getPostData, getSiteData } from "@/lib/fetchers";
 export async function generateMetadata({
   params,
 }: {
-  params: { domain: string; slug: string };
+  params: Promise<{ domain: string; slug: string }>;
 }) {
-  const domain = decodeURIComponent(params.domain);
-  const slug = decodeURIComponent(params.slug);
+  const { domain: domainParam, slug: slugParam } = await params;
+  const domain = decodeURIComponent(domainParam);
+  const slug = decodeURIComponent(slugParam);
 
   const [data, siteData] = await Promise.all([
     getPostData(domain, slug),
@@ -46,51 +47,44 @@ export async function generateMetadata({
   };
 }
 
-export async function generateStaticParams() {
-  const allPosts = await prisma.post.findMany({
-    select: {
-      slug: true,
-      site: {
-        select: {
-          subdomain: true,
-          customDomain: true,
-        },
-      },
-    },
-    // feel free to remove this filter if you want to generate paths for all posts
-    // where: {
-    //   site: {
-    //     subdomain: "demo",
-    //   },
-    // },
-    // TODO: this restriction will probably be important. You don't want to generate static params for all tenant sites if a customer is just visiting one of them at a time.
-  });
+// Disabled static generation to avoid database connection issues during build
+// export async function generateStaticParams() {
+//   const allPosts = await prisma.post.findMany({
+//     select: {
+//       slug: true,
+//       site: {
+//         select: {
+//           subdomain: true,
+//           customDomain: true,
+//         },
+//       },
+//     },
+//   });
 
-  const allPaths = allPosts
-    .flatMap(({ site, slug }) => [
-      site?.subdomain && {
-        domain: `${site.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`,
-        slug,
-      },
-      site?.customDomain && {
-        domain: site.customDomain,
-        slug,
-      },
-    ])
-    .filter(Boolean);
+//   const allPaths = allPosts
+//     .flatMap(({ site, slug }) => [
+//       site?.subdomain && {
+//         domain: `${site.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`,
+//         slug,
+//       },
+//       site?.customDomain && {
+//         domain: site.customDomain,
+//         slug,
+//       },
+//     ])
+//     .filter(Boolean);
 
-  console.log(allPaths);
-
-  return allPaths;
-}
+//   return allPaths;
+// }
 
 export default async function TenantPostsPage({
   params,
 }: {
-  params: { domain: string; slug: string };
+  params: Promise<{ domain: string; slug: string }>;
 }) {
-  const domain = decodeURIComponent(params.domain);
-  const slug = decodeURIComponent(params.slug);
+  const { domain: domainParam, slug: slugParam } = await params;
+  const domain = decodeURIComponent(domainParam);
+  const slug = decodeURIComponent(slugParam);
   const data = await getPostData(domain, slug);
 
   console.log("here is the domain and slug", domain, slug);
@@ -100,6 +94,9 @@ export default async function TenantPostsPage({
     notFound();
   }
 
+  // Type assertion to help TypeScript understand the data structure
+  const postData = data as any;
+
   return (
     <>
       <div className="flex flex-col items-center justify-center">
@@ -108,12 +105,12 @@ export default async function TenantPostsPage({
             {toDateString(data.createdAt)}
           </p> */}
           <h1 className="mb-10 font-title text-3xl font-bold text-stone-800 dark:text-white md:text-6xl">
-            {data.title}
+            {postData?.title || "Post Not Found"}
           </h1>
           <p className="text-md m-auto w-10/12 text-stone-600 dark:text-stone-400 md:text-lg">
-            {data.description}
+            {postData?.description || "This post could not be found."}
           </p>
-          <p className="text-md text-left md:text-lg">{data.content}</p>
+          <p className="text-md text-left md:text-lg">{postData?.content || "Content not available."}</p>
         </div>
       </div>
     </>

@@ -1,4 +1,6 @@
-export const HOME_DOMAIN = "https://tholattice.com";
+export const HOME_DOMAIN = process.env.NODE_ENV === "production" 
+  ? "https://tholattice.com" 
+  : "http://localhost:3000";
 
 export const APP_HOSTNAMES = new Set([
   "app.tholattice.com",

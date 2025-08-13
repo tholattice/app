@@ -35,17 +35,9 @@ export default function RootLayout({
       {/* <div lang="zh-CN"> */}
       <div>
         {/* bg-gray-50 */}
-        {/* <Providers> */}
-        {/* <div className="flex flex-col min-h-screen justify-between"> */}
-        {/* <MobileHeader /> */}
-        {/* <NewMobileHeader />
-            <Header />
-            {children}
-            <Footer />
-            <Background /> */}
-        {/* </div> */}
-        Under maintenance
-        {/* </Providers> */}
+        <Providers>
+          {children}
+        </Providers>
       </div>
     </body>
     // </html>

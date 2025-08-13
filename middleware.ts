@@ -16,42 +16,45 @@ export const config = {
 
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl;
+  const hostname = req.headers.get("host")!;
+  const path = url.pathname;
 
-  // Get hostname of request (e.g. demo.vercel.pub, demo.localhost:3000)
-  const hostname = req.headers
-    .get("host")!
-    .replace(".localhost:3000", `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`);
-
-  const searchParams = req.nextUrl.searchParams.toString();
-  // Get the pathname of the request (e.g. /, /about, /blog/first-post)
-  const path = `${url.pathname}${
-    searchParams.length > 0 ? `?${searchParams}` : ""
-  }`;
-
-  // rewrites for app pages
-  if (hostname == `app.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
-    const session = await getToken({ req });
-
-    if (!session && path !== "/login" && path !== '/register') {
-      return NextResponse.redirect(new URL("/login", req.url));
-    } else if (session && path == "/login") {
-      return NextResponse.redirect(new URL("/", req.url));
+  // Handle localhost development
+  if (hostname === "localhost:3000" || hostname === "localhost:3001") {
+    // Rewrite auth and dashboard routes to tholattice.com
+    if (path.startsWith("/auth") || path.startsWith("/dashboard")) {
+      return NextResponse.rewrite(
+        new URL(`/tholattice.com${path}`, req.url),
+      );
     }
 
-    return NextResponse.rewrite(
-      new URL(`/app.tholattice.com${path === "/" ? "" : path}`, req.url),
-    );
-  }
-
-  // rewrite root application to `/home` folder
-  if (
-    hostname === "localhost:3000" ||
-    hostname === process.env.NEXT_PUBLIC_ROOT_DOMAIN
-  ) {
+    // Rewrite main site routes to tholattice.com
     return NextResponse.rewrite(
       new URL(`/tholattice.com${path === "/" ? "" : path}`, req.url),
     );
   }
-  // rewrite everything else to `/[domain]/[slug] dynamic route
+
+  // Handle production domain
+  if (hostname === process.env.NEXT_PUBLIC_ROOT_DOMAIN) {
+    // Rewrite auth and dashboard routes to tholattice.com
+    if (path.startsWith("/auth") || path.startsWith("/dashboard")) {
+      return NextResponse.rewrite(
+        new URL(`/tholattice.com${path}`, req.url),
+      );
+    }
+
+    // Rewrite main site routes to tholattice.com
+    return NextResponse.rewrite(
+      new URL(`/tholattice.com${path === "/" ? "" : path}`, req.url),
+    );
+  }
+
+  // Handle subdomain routing for tenant sites
+  if (hostname.startsWith("app.")) {
+    // Redirect old app subdomain to new dashboard
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
+  // Handle other domains (tenant sites)
   return NextResponse.rewrite(new URL(`/${hostname}${path}`, req.url));
 }

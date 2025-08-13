@@ -16,9 +16,10 @@ import Providers from "./providers";
 export async function generateMetadata({
   params,
 }: {
-  params: { domain: string };
+  params: Promise<{ domain: string }>;
 }): Promise<Metadata | null> {
-  const domain = decodeURIComponent(params.domain);
+  const { domain: domainParam } = await params;
+  const domain = decodeURIComponent(domainParam);
   const data = await getSiteData(domain);
 
   if (!data) {
@@ -48,7 +49,7 @@ export async function generateMetadata({
     // TODO: The logo should not be the favicon of the site. Should be different
     metadataBase: new URL(`https://${domain}`),
     // Optional: Set canonical URL to custom domain if it exists
-    ...(params.domain.endsWith(`.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) &&
+    ...(domain.endsWith(`.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) &&
       data.customDomain && {
         alternates: {
           canonical: `https://${data.customDomain}`,
@@ -61,10 +62,11 @@ export default async function TenantSiteLayout({
   params,
   children,
 }: {
-  params: { domain: string };
+  params: Promise<{ domain: string }>;
   children: ReactNode;
 }) {
-  const domain = decodeURIComponent(params.domain);
+  const { domain: domainParam } = await params;
+  const domain = decodeURIComponent(domainParam);
   const data = await getSiteData(domain);
 
   if (!data) {

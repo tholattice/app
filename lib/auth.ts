@@ -1,173 +1,117 @@
-import prisma from "@/lib/prisma";
-// import bcrypt from "bcrypt"
-
-import { getServerSession, type NextAuthOptions } from "next-auth";
+import NextAuth from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import GoogleProvider from "next-auth/providers/google";
+import prisma from "@/lib/prisma";
 
-// import GitHubProvider from "next-auth/providers/github";
-import EmailProvider from "next-auth/providers/email";
-import LoginLink from "@/emails/login-link";
-import { sendEmail } from "@/emails";
-// Implement email provider later
+// Custom WeChat OAuth provider
+const WeChatProvider = {
+  id: "wechat",
+  name: "WeChat",
+  type: "oauth" as const,
+  authorization: {
+    url: "https://open.weixin.qq.com/connect/qrconnect",
+    params: {
+      scope: "snsapi_login",
+      response_type: "code",
+    },
+  },
+  token: "https://api.weixin.qq.com/sns/oauth2/access_token",
+  userinfo: "https://api.weixin.qq.com/sns/userinfo",
+  profile(profile: any) {
+    return {
+      id: profile.openid,
+      name: profile.nickname,
+      email: null, // WeChat doesn't provide email
+      image: profile.headimgurl,
+    };
+  },
+  clientId: process.env.WECHAT_CLIENT_ID!,
+  clientSecret: process.env.WECHAT_CLIENT_SECRET!,
+};
 
-// import CredentialsProvider from "next-auth/providers/credentials";
-
-const VERCEL_DEPLOYMENT = !!process.env.VERCEL_URL;
-
-export const authOptions: NextAuthOptions = {
+export const {
+  handlers: { GET, POST },
+  auth,
+  signIn,
+  signOut,
+} = NextAuth({
+  adapter: PrismaAdapter(prisma),
+  trustHost: true,
   providers: [
-    // CredentialsProvider({
-    //     name: "credentials",
-    //     credentials: {
-    //         username: {label: "Username", type: "text", placeholder: "jsmith"},
-    //         password: { label: "Password", type: "password"}
-    //     },
-    //     async authorize(credentials) {
-
-    //     }
-    // }),
-    EmailProvider({
-      sendVerificationRequest({identifier, url}) {
-        // if (process.env.NODE_ENV === 'development') {
-        //   console.log(`Login link: ${url}`);
-        //   return;
-        // } else {
-          sendEmail({
-            email: identifier,
-            subject: "Your Tholattice Login Link",
-            react: LoginLink({url, email: identifier}),
-          })
-        // }
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
       }
-    })
+    }),
+    WeChatProvider,
   ],
   pages: {
-    // signIn: `/login`,
-    // verifyRequest: `/login`,
-    error: "/login", // Error code passed in query string as ?error=
+    signIn: "/login",
+    error: "/login",
   },
-  adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
   cookies: {
     sessionToken: {
-      name: `${VERCEL_DEPLOYMENT ? "__Secure-" : ""}next-auth.session-token`,
+      name: `${process.env.VERCEL_DEPLOYMENT === "1" ? "__Secure-" : ""}next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        // When working on localhost, the cookie domain must be omitted entirely (https://stackoverflow.com/a/1188145)
-        domain: VERCEL_DEPLOYMENT
-          ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`
-          : undefined,
-        secure: VERCEL_DEPLOYMENT,
+        secure: process.env.VERCEL_DEPLOYMENT === "1",
       },
     },
   },
   callbacks: {
-    signIn: async ({user, account, profile}) => {
-      // console.log({user, account, profile});
-      // if (!user.email || (await isBlacklistedEmail(user.email))) {
-      //   return false;
+    async signIn({ user, account, profile }) {
+      // Temporarily disable database operations
+      // if (account?.provider === "google" && profile?.email) {
+      //   // Check if user already exists
+      //   const existingUser = await prisma.user.findUnique({
+      //     where: { email: profile.email }
+      //   });
+
+      //   if (existingUser) {
+      //     // Update user info from Google profile
+      //     await prisma.user.update({
+      //       where: { email: profile.email },
+      //       data: {
+      //         name: profile.name || existingUser.name,
+      //         image: profile.picture || existingUser.image,
+      //       }
+      //     });
+      //   }
       // }
-      if (!user.email) {
-        return false;
-      } 
-    // console.log('yes, indeed')
-    return true
+      return true;
     },
-    jwt: async ({ token, user, session }) => {
-      // console.log(`This is the token, ${JSON.stringify(token)}`)
-      console.log("jwt callback", {token, user, session})
+    async jwt({ token, user, account }) {
       if (user) {
-        token.user = user;
+        token.user = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+        };
       }
       return token;
     },
-    session: async ({ session, token, user }) => {
-      console.log("session callback", {token, session, user})
-
-      session.user = {
-        ...session.user,
-        // @ts-expect-error
-        id: token.sub,
-        // @ts-expect-error
-        username: token?.user?.username || token?.user?.gh_username,
-      };
-
-      console.log("new session callback", {token, session, user})
-
+    async session({ session, token }) {
+      if (token.user) {
+        session.user = token.user as any;
+      }
       return session;
     },
+    redirect: async ({ url, baseUrl }) => {
+      // Always redirect to dashboard after successful authentication
+      return `${baseUrl}/dashboard`;
+    },
   },
-};
-
-export function getSession() {
-  return getServerSession(authOptions) as Promise<{
-    user: {
-      id: string;
-      name: string;
-      username: string;
-      email: string;
-      image: string;
-    };
-  } | null>;
-}
-
-export function withSiteAuth(action: any) {
-  return async (
-    formData: FormData | null,
-    siteId: string,
-    key: string | null,
-  ) => {
-    const session = await getSession();
-    if (!session) {
-      return {
-        error: "Not authenticated",
-      };
-    }
-    const site = await prisma.site.findUnique({
-      where: {
-        id: siteId,
-      },
-    });
-    if (!site || site.userId !== session.user.id) {
-      return {
-        error: "Not authorized",
-      };
-    }
-
-    return action(formData, site, key);
-  };
-}
-
-export function withPostAuth(action: any) {
-  return async (
-    formData: FormData | null,
-    postId: string,
-    key: string | null,
-  ) => {
-    const session = await getSession();
-    if (!session?.user.id) {
-      return {
-        error: "Not authenticated",
-      };
-    }
-    const post = await prisma.post.findUnique({
-      where: {
-        id: postId,
-      },
-      include: {
-        site: true,
-      },
-    });
-    if (!post || post.userId !== session.user.id) {
-      return {
-        error: "Post not found",
-      };
-    }
-
-    return action(formData, post, key);
-  };
-}
+  session: {
+    strategy: "jwt",
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+});

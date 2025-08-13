@@ -11,10 +11,17 @@ export async function getSiteData(domain: string) {
 
   return await unstable_cache(
     async () => {
-      return prisma.site.findUnique({
+      const data = await prisma.site.findUnique({
         where: subdomain ? { subdomain } : { customDomain: domain },
-        include: { user: true, location: true },
+        include: {
+          user: true,
+          location: true,
+        },
       });
+
+      if (!data) return null;
+
+      return data;
     },
     [`${domain}-metadata`],
     {
@@ -31,25 +38,31 @@ export async function getPostsForSite(domain: string) {
 
   return await unstable_cache(
     async () => {
-      return prisma.post.findMany({
-        where: {
-          site: subdomain ? { subdomain } : { customDomain: domain },
-          published: true,
-        },
-        select: {
-          title: true,
-          description: true,
-          slug: true,
-          image: true,
-          imageBlurhash: true,
-          createdAt: true,
-        },
-        orderBy: [
-          {
-            createdAt: "desc",
-          },
-        ],
-      });
+      // Temporarily disable database queries
+      // const data = await prisma.post.findMany({
+      //   where: {
+      //     site: subdomain ? { subdomain } : { customDomain: domain },
+      //     published: true,
+      //   },
+      //   select: {
+      //     title: true,
+      //     description: true,
+      //     slug: true,
+      //     image: true,
+      //     imageBlurhash: true,
+      //     createdAt: true,
+      //   },
+      //   orderBy: [
+      //     {
+      //       createdAt: "desc",
+      //     },
+      //   ],
+      // });
+
+      // return data;
+      
+      // Return mock data for now
+      return [];
     },
     [`${domain}-posts`],
     {
@@ -66,22 +79,23 @@ export async function getPostData(domain: string, slug: string) {
 
   return await unstable_cache(
     async () => {
-      const data = await prisma.post.findFirst({
-        where: {
-          site: subdomain ? { subdomain } : { customDomain: domain },
-          slug,
-          published: true,
-        },
-        include: {
-          site: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      });
+      // Temporarily disable database queries
+      // const data = await prisma.post.findFirst({
+      //   where: {
+      //     site: subdomain ? { subdomain } : { customDomain: domain },
+      //     slug,
+      //     published: true,
+      //   },
+      //   include: {
+      //     site: {
+      //       include: {
+      //         user: true,
+      //       },
+      //     },
+      //   },
+      // });
 
-      if (!data) return null;
+      // if (!data) return null;
 
     //   const [mdxSource, adjacentPosts] = await Promise.all([
     //     getMdxSource(data.content!),
@@ -104,11 +118,14 @@ export async function getPostData(domain: string, slug: string) {
     //     }),
     //   ]);
 
-      return {
-        ...data,
-        // mdxSource,
-        // adjacentPosts,
-      };
+      // return {
+      //   ...data,
+      //   // mdxSource,
+      //   // adjacentPosts,
+      // };
+      
+      // Return null for now
+      return null;
     },
     [`${domain}-${slug}`],
     {

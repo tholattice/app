@@ -3,13 +3,16 @@ import { get } from "@vercel/edge-config";
 import { getDomainWithoutWWW } from "@/utils/misc";
 
 export const isBlacklistedDomain = async (domain: string) => {
-  let blacklistedDomains, blacklistedTerms;
+  let blacklistedDomains: string[] = [];
+  let blacklistedTerms: string[] = [];
 
   try {
-    [blacklistedDomains, blacklistedTerms] = await Promise.all([
+    const [domains, terms] = await Promise.all([
       get("domains"),
       get("terms"),
     ]);
+    blacklistedDomains = (domains as string[]) || [];
+    blacklistedTerms = (terms as string[]) || [];
   } catch (e) {
     blacklistedDomains = [];
     blacklistedTerms = [];
@@ -19,15 +22,16 @@ export const isBlacklistedDomain = async (domain: string) => {
 
   return (
     blacklistedDomains.includes(domainToTest) ||
-    new RegExp(blacklistedTerms!.join("|")).test(domainToTest)
+    new RegExp(blacklistedTerms.join("|")).test(domainToTest)
   );
 };
 
 export const isBlacklistedReferrer = async (referrer: string | null) => {
-  const hostname = referrer ? getDomainWithoutWWW(referrer) : "(direct)";
-  let referrers;
+  const hostname = referrer ? getDomainWithoutWWW(referrer) || referrer : "(direct)";
+  let referrers: string[] = [];
   try {
-    referrers = await get("referrers");
+    const refs = await get("referrers");
+    referrers = (refs as string[]) || [];
   } catch (e) {
     referrers = [];
   }
@@ -35,9 +39,10 @@ export const isBlacklistedReferrer = async (referrer: string | null) => {
 };
 
 export const isBlacklistedKey = async (key: string) => {
-  let blacklistedKeys;
+  let blacklistedKeys: string[] = [];
   try {
-    blacklistedKeys = await get("keys");
+    const keys = await get("keys");
+    blacklistedKeys = (keys as string[]) || [];
   } catch (e) {
     blacklistedKeys = [];
   }
@@ -45,9 +50,10 @@ export const isBlacklistedKey = async (key: string) => {
 };
 
 export const isWhitelistedEmail = async (email: string) => {
-  let whitelistedEmails;
+  let whitelistedEmails: string[] = [];
   try {
-    whitelistedEmails = await get("whitelist");
+    const emails = await get("whitelist");
+    whitelistedEmails = (emails as string[]) || [];
   } catch (e) {
     whitelistedEmails = [];
   }
@@ -55,9 +61,10 @@ export const isWhitelistedEmail = async (email: string) => {
 };
 
 export const isBlacklistedEmail = async (email: string) => {
-  let blacklistedEmails;
+  let blacklistedEmails: string[] = [];
   try {
-    blacklistedEmails = await get("emails");
+    const emails = await get("emails");
+    blacklistedEmails = (emails as string[]) || [];
   } catch (e) {
     blacklistedEmails = [];
   }
@@ -77,9 +84,10 @@ export const isReservedKey = async (key: string) => {
       "privacy",
     ].includes(key);
   }
-  let reservedKey;
+  let reservedKey: string[] = [];
   try {
-    reservedKey = await get("reserved");
+    const reserved = await get("reserved");
+    reservedKey = (reserved as string[]) || [];
   } catch (e) {
     reservedKey = [];
   }

@@ -83,6 +83,11 @@ module.exports = {
         protocol: 'https',
         hostname: "i.pinimg.com",
         port: ''
+      },
+      {
+        protocol: 'https',
+        hostname: "lh3.googleusercontent.com",
+        port: ''
       }
     ],
   },

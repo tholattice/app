@@ -8,6 +8,7 @@ import {
   SetStateAction,
   useState,
 } from "react";
+import { SessionProvider } from "next-auth/react";
 
 interface ITranslationContext {
   language: string;
@@ -22,12 +23,14 @@ export const TranslationContext = createContext<ITranslationContext>({
 // Maybe consider passing in an actual object instead of string values in the future?
 
 export default function Providers({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState("zh-CN");
+  const [language, setLanguage] = useState("en-US");
 
   return (
-    <TranslationContext.Provider value={{ language, setLanguage }}>
-      {children}
-    </TranslationContext.Provider>
+    <SessionProvider>
+      <TranslationContext.Provider value={{ language, setLanguage }}>
+        {children}
+      </TranslationContext.Provider>
+    </SessionProvider>
   );
 }
 

@@ -1,57 +1,32 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-enum Role {
-  owner
-  admin
-  masseuse
-  client
-}
-
-enum MassageType {
-  body
-  foot
-  sauna
-}
-
-enum MassageAddons {
-  cupping
-  backwalking
-  hotstones
-  aromatherapy
-  tigerbalm
-}
-
 model User {
-  id            String    @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String?
-  email         String    @unique
+  email         String         @unique
   emailVerified DateTime?
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
+  password      String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   role          Role[]
   accounts      Account[]
+  appointments  Appointment[]
+  client        Client?
+  locations     Location[]
+  masseuse      Masseuse?
+  posts         Post[]
   sessions      Session[]
   sites         Site[]
-  posts         Post[]
-  tokens        Token[]
   subscriptions Subscription[]
-  locations     Location[]
-  appointments  Appointment[]
-
-  masseuse Masseuse?
-  client   Client?
+  tokens        Token[]
 
   @@unique([name, id])
 }
@@ -62,193 +37,156 @@ model Account {
   type               String
   provider           String
   providerAccountId  String
-  refresh_token      String? @db.Text
-  access_token       String? @db.Text
+  refresh_token      String?
+  access_token       String?
   expires_at         Int?
   token_type         String?
   scope              String?
-  id_token           String? @db.Text
+  id_token           String?
   session_state      String?
-  oauth_token_secret String? @db.Text
-  oauth_token        String? @db.Text
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oauth_token_secret String?
+  oauth_token        String?
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
 }
 
 model Masseuse {
-  id             String @id @default(cuid())
-  wechatUsername String
-
-  user         User   @relation(fields: [masseuseName, masseuseId], references: [name, id])
-  masseuseName String
-  masseuseId   String
-
-  servicesOffered   MasseuseService @relation(fields: [masseuseServiceId], references: [id])
+  id                String             @id @default(cuid())
+  wechatUsername    String             @unique
+  masseuseName      String
+  masseuseId        String
   masseuseServiceId String
+  appointments      Appointment[]
+  holidayHours      HolidayHours[]
+  LocationMasseuse  LocationMasseuse[]
+  user              User               @relation(fields: [masseuseName, masseuseId], references: [name, id])
+  servicesOffered   MasseuseService    @relation(fields: [masseuseServiceId], references: [id])
+  workingHours      WorkingHours[]
 
-  workingHours     WorkingHours[]
-  holidayHours     HolidayHours[]
-  appointments     Appointment[]
-  LocationMasseuse LocationMasseuse[]
-
-  @@unique([wechatUsername])
   @@unique([masseuseName, masseuseId])
 }
 
 model Client {
-  id String @id @default(cuid())
-
-  user       User   @relation(fields: [clientName, clientId], references: [name, id])
-  clientName String
-  clientId   String
-
+  id              String           @id @default(cuid())
+  clientName      String
+  clientId        String
   appointment     Appointment[]
+  user            User             @relation(fields: [clientName, clientId], references: [name, id])
   clientLocations LocationClient[]
 
   @@unique([clientName, clientId])
 }
 
 model LocationClient {
-  id         String @id @default(cuid())
+  id         String   @id @default(cuid())
   clientId   String
   locationId String
-
-  client   Client   @relation(fields: [clientId], references: [id])
-  location Location @relation(fields: [locationId], references: [id])
+  client     Client   @relation(fields: [clientId], references: [id])
+  location   Location @relation(fields: [locationId], references: [id])
 
   @@unique([clientId, locationId])
 }
 
 model MasseuseService {
-  id String @id @default(cuid())
-
+  id       String          @id @default(cuid())
   type     MassageType[]
   addons   MassageAddons[]
-  Masseuse Masseuse[]
   duration Int[]
+  Masseuse Masseuse[]
 }
 
 model Massage {
   id          String         @id @default(cuid())
   type        MassageType
-  addons      MassageAddon[]
   appointment Appointment[]
+  addons      MassageAddon[]
 
   @@unique([id, type])
 }
 
 model MassageAddon {
-  id   String        @id @default(cuid())
-  type MassageAddons
-
-  massage   Massage @relation(fields: [massageId], references: [id])
+  id        String        @id @default(cuid())
+  type      MassageAddons
   massageId String
+  massage   Massage       @relation(fields: [massageId], references: [id])
 
   @@unique([type, massageId])
 }
 
 model Appointment {
-  id              String   @id @default(cuid())
-  appointmentDate DateTime
-  duration        Int // Duration of the appointment in minutes
-
-  masseuse                Masseuse @relation(fields: [masseuseAppointmentName, masseuseAppointmentId], references: [masseuseName, masseuseId])
+  id                      String   @id @default(cuid())
+  appointmentDate         DateTime
+  duration                Int
   masseuseAppointmentName String
   masseuseAppointmentId   String
-
-  client                Client @relation(fields: [clientAppointmentName, clientAppointmentId], references: [clientName, clientId])
-  clientAppointmentName String
-  clientAppointmentId   String
-
-  location   Location @relation(fields: [locationId], references: [id])
-  locationId String
-
-  massage   Massage @relation(fields: [massageId], references: [id])
-  massageId String
-
-  User   User?   @relation(fields: [userId], references: [id])
-  userId String?
+  clientAppointmentName   String
+  clientAppointmentId     String
+  locationId              String
+  massageId               String
+  userId                  String?
+  client                  Client   @relation(fields: [clientAppointmentName, clientAppointmentId], references: [clientName, clientId])
+  location                Location @relation(fields: [locationId], references: [id])
+  massage                 Massage  @relation(fields: [massageId], references: [id])
+  masseuse                Masseuse @relation(fields: [masseuseAppointmentName, masseuseAppointmentId], references: [masseuseName, masseuseId])
+  User                    User?    @relation(fields: [userId], references: [id])
 }
 
 model LocationMasseuse {
-  id String @id @default(cuid())
-
-  location   Location @relation(fields: [locationId], references: [id])
+  id         String   @id @default(cuid())
   locationId String
-
-  masseuse   Masseuse @relation(fields: [masseuseId], references: [id])
   masseuseId String
+  location   Location @relation(fields: [locationId], references: [id])
+  masseuse   Masseuse @relation(fields: [masseuseId], references: [id])
 
   @@unique([locationId, masseuseId])
 }
 
 model Location {
-  id          String @id @default(cuid())
-  name        String
-  address     String
-  city        String
-  state       String
-  postalCode  String
-  country     String
-  latitude    Float?
-  longitude   Float?
-  phoneNumber String
-
-  workingHours WorkingHours[]
-  // TODO: Make sure to implement validation check where store shows closed on holiday hours but also that there are working hours for each day of the week.
+  id           String             @id @default(cuid())
+  name         String
+  address      String
+  city         String
+  state        String
+  postalCode   String
+  country      String
+  latitude     Float?
+  longitude    Float?
+  phoneNumber  String
+  ownerId      String
+  Appointment  Appointment[]
   holidayHours HolidayHours[]
-  masseuses    LocationMasseuse[]
+  user         User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   clients      LocationClient[]
-
-  user    User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId String
-
-  Appointment Appointment[]
-  Site        Site[]
+  masseuses    LocationMasseuse[]
+  Site         Site[]
+  workingHours WorkingHours[]
 }
 
 model WorkingHours {
-  id        String @id @default(cuid())
-  dayOfWeek Int // Represent the day of the week (e.g., Monday = 1, Tuesday = 2, etc.)
-
-  // openHourTime    Int // Store opening time as Int
-  // closeHourTime   Int // Store opening time as Int
-  // openMinuteTime  Int // Store opening time as Int
-  // closeMinuteTime Int // Store opening time as Int
-
-  openTime  DateTime @default("2024-01-01T09:00:00Z") // Store opening time as DateTime
-  closeTime DateTime @default("2024-01-01T17:00:00Z") // Store closing time as DateTime
-
-  // openAMPM  String // Store opening time as String
-  // closeAMPM String // Store closing time as String
-
-  // Define a foreign key relationship with Location
-  location   Location? @relation(fields: [locationId], references: [id])
+  id         String    @id @default(cuid())
+  dayOfWeek  Int
+  openTime   DateTime  @default(dbgenerated("'2024-01-01 09:00:00'::timestamp without time zone"))
+  closeTime  DateTime  @default(dbgenerated("'2024-01-01 17:00:00'::timestamp without time zone"))
   locationId String?
-
-  masseuse   Masseuse? @relation(fields: [masseuseId], references: [id])
   masseuseId String?
+  location   Location? @relation(fields: [locationId], references: [id])
+  masseuse   Masseuse? @relation(fields: [masseuseId], references: [id])
 
   @@unique([locationId, dayOfWeek])
   @@unique([masseuseId, dayOfWeek])
 }
 
 model HolidayHours {
-  id          String   @id @default(cuid())
-  holidayDate DateTime // Store holiday day as DateTime
-
-  openTime  DateTime @default("2024-01-01T09:00:00Z") // Store opening time as DateTime for the holiday
-  closeTime DateTime @default("2024-01-01T17:00:00Z") // Store closing time as DateTime for the holiday
-
-  // Define a foreign key relationship with Location
-  location   Location? @relation(fields: [locationId], references: [id])
-  locationId String?
-
-  masseuse   Masseuse? @relation(fields: [masseuseId], references: [id])
-  masseuseId String?
+  id          String    @id @default(cuid())
+  holidayDate DateTime
+  openTime    DateTime  @default(dbgenerated("'2024-01-01 09:00:00'::timestamp without time zone"))
+  closeTime   DateTime  @default(dbgenerated("'2024-01-01 17:00:00'::timestamp without time zone"))
+  locationId  String?
+  masseuseId  String?
+  location    Location? @relation(fields: [locationId], references: [id])
+  masseuse    Masseuse? @relation(fields: [masseuseId], references: [id])
 
   @@unique([locationId, holidayDate])
   @@unique([masseuseId, holidayDate])
@@ -281,27 +219,27 @@ model Token {
   lastUsed   DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model Post {
   id            String   @id @default(cuid())
-  title         String?  @db.Text
-  description   String?  @db.Text
-  content       String?  @db.Text
+  title         String?
+  description   String?
+  content       String?
   slug          String   @default(cuid())
-  image         String?  @db.Text
-  imageBlurhash String?  @db.Text
+  image         String?
+  imageBlurhash String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   published     Boolean  @default(false)
-  site          Site?    @relation(fields: [siteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   siteId        String?
-  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId        String?
+  site          Site?    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([slug, siteId])
   @@index([siteId])
@@ -311,39 +249,55 @@ model Post {
 model Site {
   id            String   @id @default(cuid())
   name          String?
-  description   String?  @db.Text
-  logo          String?  @db.Text
+  description   String?
+  logo          String?
   font          String   @default("font-cal")
-  // The default font may need to change. Lots more custom values to add to this model.
-  layout        Int      @default(1) @db.Integer
-  image         String?  @db.Text
-  imageBlurhash String?  @db.Text
+  layout        Int      @default(1)
+  image         String?
+  imageBlurhash String?
   subdomain     String?  @unique
   customDomain  String?  @unique
-  message404    String?  @default("You've found a page that doesn't exist.") @db.Text
+  message404    String?  @default("You've found a page that doesn't exist.")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  locationId String
-
-  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String?
-
-  posts Post[]
+  locationId    String
+  userId        String?
+  posts         Post[]
+  location      Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model Subscription {
-  id                String @id @default(cuid())
+  id                String   @id @default(cuid())
   plan              String
-  role              Role   @unique
-  stripeId          String @unique // Stripe subscription ID
-  billingCycleStart Int // day of the month when the billing cycle starts
+  role              Role     @unique
+  stripeId          String   @unique
+  billingCycleStart Int
+  userId            String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum Role {
+  owner
+  admin
+  masseuse
+  client
+}
+
+enum MassageType {
+  body
+  foot
+  sauna
+}
+
+enum MassageAddons {
+  cupping
+  backwalking
+  hotstones
+  aromatherapy
+  tigerbalm
 }

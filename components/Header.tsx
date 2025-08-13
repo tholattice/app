@@ -5,6 +5,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 
 // import { motion } from "framer-motion";
 
@@ -66,6 +68,7 @@ const Header = () => {
   // const [nav, setNav] = useState(false);
   const { language, setLanguage } = useTranslationContext();
   const scrolled = useScroll(70);
+  const { data: session } = useSession();
 
   // const handleNav = () => {
   //   setNav(!nav);
@@ -160,21 +163,42 @@ const Header = () => {
         </div>
 
         <div className="hidden lg:block">
-          <Link
-            className="animate-fade-in rounded-full px-4 py-1.5 text-sm font-medium text-gray-500 transition-colors ease-out hover:text-black"
-            id="nav-login"
-            href="/login"
-          >
-            {language === "zh-CN" ? "登录" : "Log In"}
-          </Link>
+          {session ? (
+            <>
+              <Link
+                className="animate-fade-in rounded-full border border-black bg-black px-4 py-1.5 text-sm text-white transition-all hover:bg-white hover:text-black"
+                id="nav-dashboard"
+                href="/dashboard"
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="animate-fade-in rounded-full px-4 py-1.5 text-sm font-medium text-gray-500 transition-colors ease-out hover:text-black ml-4"
+                id="nav-logout"
+              >
+                {language === "zh-CN" ? "登出" : "Log Out"}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                className="animate-fade-in rounded-full px-4 py-1.5 text-sm font-medium text-gray-500 transition-colors ease-out hover:text-black"
+                id="nav-login"
+                href="/login"
+              >
+                {language === "zh-CN" ? "登录" : "Log In"}
+              </Link>
 
-          <Link
-            id="nav-register"
-            href="/register"
-            className="animate-fade-in rounded-full border border-black bg-black px-4 py-1.5 text-sm text-white transition-all hover:bg-white hover:text-black"
-          >
-            {language === "zh-CN" ? "报名" : "Sign Up"}
-          </Link>
+              <Link
+                id="nav-register"
+                href="/register"
+                className="animate-fade-in rounded-full border border-black bg-black px-4 py-1.5 text-sm text-white transition-all hover:bg-white hover:text-black"
+              >
+                {language === "zh-CN" ? "报名" : "Sign Up"}
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile Button */}

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 // import { ChevronDown, Menu, X } from "lucide-react";
 import { Menu, X } from "lucide-react";
 
@@ -27,6 +29,7 @@ const NewMobileHeader = () => {
   const [open, setOpen] = useState(false);
   const [openLanguages, setOpenLanguages] = useState(false);
   const { language, setLanguage } = useTranslationContext();
+  const { data: session } = useSession();
 
   // prevent body scroll when modal is open
   useEffect(() => {
@@ -110,7 +113,10 @@ const NewMobileHeader = () => {
               <li className="my-3 w-full">
                 <Link
                   href={`/${slug}`}
-                  onClick={() => setOpen(!open)}
+                  onClick={() => {
+                    // Delay closing the menu to prevent flash
+                    setTimeout(() => setOpen(false), 100);
+                  }}
                   className={`flex w-full ${
                     language === "zh-CN" ? "font-normal" : "font-semibold"
                   }capitalize`}
@@ -122,22 +128,61 @@ const NewMobileHeader = () => {
             </div>
           ))}
           {/* Login/Signup Links */}
-          {mobileNavLoginItems.map(({ englishName, chineseName, slug }) => (
-            <div key={slug} className="grid gap-3">
-              <li className="my-3 w-full">
-                <Link
-                  href={`/${slug}`}
-                  onClick={() => setOpen(!open)}
-                  className={`flex w-full ${
-                    language === "zh-CN" ? "font-normal" : "font-semibold"
-                  }capitalize`}
-                >
-                  {language === "zh-CN" ? chineseName : englishName}
-                </Link>
-              </li>
-              {/* <span className="my-3 h-px w-full bg-gray-300" /> */}
-            </div>
-          ))}
+          {session ? (
+            <>
+              <div className="grid gap-3">
+                <li className="my-3 w-full">
+                  <Link
+                    href="/dashboard"
+                    onClick={() => {
+                      // Delay closing the menu to prevent flash
+                      setTimeout(() => setOpen(false), 100);
+                    }}
+                    className={`flex w-full ${
+                      language === "zh-CN" ? "font-normal" : "font-semibold"
+                    }capitalize`}
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+              </div>
+              <div className="grid gap-3">
+                <li className="my-3 w-full">
+                  <button
+                    onClick={() => {
+                      signOut({ callbackUrl: "/" });
+                      setTimeout(() => setOpen(false), 100);
+                    }}
+                    className={`flex w-full ${
+                      language === "zh-CN" ? "font-normal" : "font-semibold"
+                    }capitalize text-left`}
+                  >
+                    {language === "zh-CN" ? "登出" : "Log Out"}
+                  </button>
+                </li>
+              </div>
+            </>
+          ) : (
+            mobileNavLoginItems.map(({ englishName, chineseName, slug }) => (
+              <div key={slug} className="grid gap-3">
+                <li className="my-3 w-full">
+                  <Link
+                    href={`/${slug}`}
+                    onClick={() => {
+                      // Delay closing the menu to prevent flash
+                      setTimeout(() => setOpen(false), 100);
+                    }}
+                    className={`flex w-full ${
+                      language === "zh-CN" ? "font-normal" : "font-semibold"
+                    }capitalize`}
+                  >
+                    {language === "zh-CN" ? chineseName : englishName}
+                  </Link>
+                </li>
+                {/* <span className="my-3 h-px w-full bg-gray-300" /> */}
+              </div>
+            ))
+          )}
         </ul>
       </nav>
     </>

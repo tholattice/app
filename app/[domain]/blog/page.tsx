@@ -1,8 +1,9 @@
-const TenantBlogPage = ({ params }: { params: { domain: string } }) => {
+const TenantBlogPage = async ({ params }: { params: Promise<{ domain: string }> }) => {
+  const { domain } = await params;
   return (
     <div>
       this is a sample top level blog page, and here is the params object:{" "}
-      {params.domain}
+      {domain}
     </div>
   );
 };
