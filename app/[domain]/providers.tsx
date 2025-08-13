@@ -10,7 +10,7 @@ import {
 } from "react";
 
 import { LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayJS";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 // import { AppointmentFormProps } from "@/lib/types/types";
 
