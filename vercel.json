@@ -1,0 +1,10 @@
+{
+  "buildCommand": "yarn build",
+  "installCommand": "yarn install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "NEXTAUTH_URL": "https://your-domain.vercel.app",
+    "NEXTAUTH_SECRET": "@nextauth_secret"
+  }
+}
