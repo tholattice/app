@@ -2,5 +2,5 @@
   "buildCommand": "yarn build",
   "installCommand": "yarn install",
   "framework": "nextjs",
-  "regions": ["iad1"],
+  "regions": ["iad1"]
 }
