@@ -18,8 +18,19 @@ export default function LoginForm() {
 
   useEffect(() => {
     const error = searchParams?.get("error");
-    error && toast.error(error);
+    if (error) {
+      toast.error(error);
+      // Reset loading states when there's an error
+      setClickedGoogle(false);
+      setClickedWeChat(false);
+    }
   }, [searchParams]);
+
+  // Reset loading states when component mounts (user returns from OAuth)
+  useEffect(() => {
+    setClickedGoogle(false);
+    setClickedWeChat(false);
+  }, []);
 
   return (
     <>
@@ -30,6 +41,10 @@ export default function LoginForm() {
           setClickedGoogle(true);
           signIn("google", {
             callbackUrl: "/dashboard",
+          }).catch((error) => {
+            console.error("Google sign in error:", error);
+            setClickedGoogle(false);
+            toast.error("Failed to sign in with Google");
           });
         }}
         loading={clickedGoogle}
@@ -44,6 +59,10 @@ export default function LoginForm() {
           setClickedWeChat(true);
           signIn("wechat", {
             callbackUrl: "/dashboard",
+          }).catch((error) => {
+            console.error("WeChat sign in error:", error);
+            setClickedWeChat(false);
+            toast.error("Failed to sign in with WeChat");
           });
         }}
         loading={clickedWeChat}
