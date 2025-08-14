@@ -12,9 +12,10 @@ export const metadata = {
 export default async function CustomerDetailPage({
   params,
 }: {
-  params: { custID: string };
+  params: Promise<{ custID: string }>;
 }) {
   const session = await auth();
+  const { custID } = await params;
 
   // Redirect to login if not authenticated
   if (!session) {
@@ -23,7 +24,7 @@ export default async function CustomerDetailPage({
 
   return (
     <Suspense fallback={<Loader />}>
-      <CustomerDetailClient customerId={params.custID} />
+      <CustomerDetailClient customerId={custID} />
     </Suspense>
   );
 }
