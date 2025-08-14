@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { custID: string } }
+  { params }: { params: Promise<{ custID: string }> }
 ) {
   try {
     const session = await auth();
@@ -13,7 +13,7 @@ export async function GET(
     }
 
     const userId = session.user.id;
-    const customerId = params.custID;
+    const { custID: customerId } = await params;
     
     // Get user's locations
     const userLocations = await prisma.location.findMany({
@@ -99,9 +99,9 @@ export async function GET(
 
     return NextResponse.json(transformedCustomer);
 
-      } catch (error) {
-      return NextResponse.json({ error: "Failed to fetch customer details" }, { status: 500 });
-    }
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to fetch customer details" }, { status: 500 });
+  }
 }
 
 
