@@ -37,17 +37,19 @@ export async function cleanupPrismaConnections() {
   }
 }
 
-// Handle process termination to clean up connections
-process.on('beforeExit', async () => {
-  await cleanupPrismaConnections();
-});
+// Handle process termination to clean up connections (only in Node.js environment)
+if (typeof process !== 'undefined' && process.on) {
+  process.on('beforeExit', async () => {
+    await cleanupPrismaConnections();
+  });
 
-process.on('SIGINT', async () => {
-  await cleanupPrismaConnections();
-  process.exit(0);
-});
+  process.on('SIGINT', async () => {
+    await cleanupPrismaConnections();
+    process.exit(0);
+  });
 
-process.on('SIGTERM', async () => {
-  await cleanupPrismaConnections();
-  process.exit(0);
-});
+  process.on('SIGTERM', async () => {
+    await cleanupPrismaConnections();
+    process.exit(0);
+  });
+}
