@@ -11,6 +11,7 @@ import {
   CurrencyDollarIcon,
   UserIcon
 } from "@heroicons/react/24/outline";
+import Image from "next/image";
 
 interface Customer {
   id: string;
@@ -141,7 +142,13 @@ export default function CustomerDetailClient({ customerId }: { customerId: strin
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <div className="flex items-start space-x-6">
           {customer.image ? (
-            <img src={customer.image} alt={customer.name} className="w-20 h-20 rounded-full" />
+            <Image 
+              src={customer.image} 
+              alt={customer.name} 
+              className="w-20 h-20 rounded-full"
+              width={80}
+              height={80}
+            />
           ) : (
             <div className={`w-20 h-20 rounded-full ${getAvatarColor(customer.name)} flex items-center justify-center`}>
               <span className="text-white font-medium text-xl">{getInitials(customer.name)}</span>

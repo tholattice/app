@@ -159,7 +159,7 @@ export default function RecentAppointments() {
             No Appointments Yet
           </h3>
           <p className="text-gray-600 dark:text-gray-300">
-            When you have appointments, they'll appear here.
+            When you have appointments, they&apos;ll appear here.
           </p>
         </div>
       ) : (

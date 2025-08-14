@@ -17,6 +17,7 @@ import {
   WifiIcon
 } from "@heroicons/react/24/outline";
 import { useRealtimeEmployees } from "@/hooks/use-realtime";
+import Image from "next/image";
 
 interface Employee {
   id: string;
@@ -261,7 +262,13 @@ export default function EmployeeList() {
               <div className="flex items-center space-x-4">
                 <div className="flex-shrink-0">
                   {employee.image ? (
-                    <img src={employee.image} alt={employee.name} className="w-12 h-12 rounded-full" />
+                    <Image 
+                      src={employee.image} 
+                      alt={employee.name} 
+                      className="w-12 h-12 rounded-full"
+                      width={48}
+                      height={48}
+                    />
                   ) : (
                     <div className={`w-12 h-12 rounded-full ${getAvatarColor(employee.name)} flex items-center justify-center`}>
                       <span className="text-white font-medium">{getInitials(employee.name)}</span>
@@ -364,7 +371,13 @@ export default function EmployeeList() {
             <div className="space-y-4">
               <div className="flex items-center space-x-4">
                 {selectedEmployee.image ? (
-                  <img src={selectedEmployee.image} alt={selectedEmployee.name} className="w-16 h-16 rounded-full" />
+                  <Image 
+                    src={selectedEmployee.image} 
+                    alt={selectedEmployee.name} 
+                    className="w-16 h-16 rounded-full"
+                    width={64}
+                    height={64}
+                  />
                 ) : (
                   <div className={`w-16 h-16 rounded-full ${getAvatarColor(selectedEmployee.name)} flex items-center justify-center`}>
                     <span className="text-white font-medium text-lg">{getInitials(selectedEmployee.name)}</span>

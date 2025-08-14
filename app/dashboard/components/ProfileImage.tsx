@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { UserIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 interface ProfileImageProps {
   size?: "sm" | "md" | "lg";
@@ -53,9 +54,11 @@ export default function ProfileImage({ size = "md", className = "" }: ProfileIma
   if (session?.user?.image && !imageError) {
     return (
       <div className={`flex-shrink-0 ${sizeClasses[size]} ${className}`}>
-        <img
+        <Image
           src={session.user.image}
           alt={session.user.name || "Profile"}
+          width={size === "sm" ? 32 : size === "md" ? 40 : 48}
+          height={size === "sm" ? 32 : size === "md" ? 40 : 48}
           className={`${sizeClasses[size]} rounded-full object-cover border-2 border-gray-200 dark:border-gray-600`}
           onError={() => setImageError(true)}
         />
