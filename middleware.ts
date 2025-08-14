@@ -21,8 +21,21 @@ export default async function middleware(req: NextRequest) {
 
   // Handle localhost development
   if (hostname === "localhost:3000" || hostname === "localhost:3001") {
-    // Rewrite auth and dashboard routes to tholattice.com
-    if (path.startsWith("/auth") || path.startsWith("/dashboard")) {
+    // Handle subdomains for tenant sites
+    if (hostname.includes(".")) {
+      const subdomain = hostname.split(".")[0];
+      if (subdomain !== "localhost") {
+        return NextResponse.rewrite(new URL(`/${hostname}${path}`, req.url));
+      }
+    }
+    
+    // For development, skip dashboard routes - let them be handled directly
+    if (path.startsWith("/dashboard")) {
+      return NextResponse.next();
+    }
+    
+    // Rewrite auth routes to tholattice.com
+    if (path.startsWith("/auth")) {
       return NextResponse.rewrite(
         new URL(`/tholattice.com${path}`, req.url),
       );

@@ -38,7 +38,14 @@ const sampleServices: ServicesInterface[] = [
   },
 ];
 
-const ServicesGrid = () => {
+interface ServicesGridProps {
+  siteData?: {
+    name?: string | null;
+    description?: string | null;
+  };
+}
+
+const ServicesGrid = ({ siteData }: ServicesGridProps) => {
   const { open } = useMobileMenuContext();
 
   return (

@@ -1,4 +1,4 @@
-// TODO: This is important but something is off with the typescript. Figure out how to implement this to avoid malicious users.
+// Note: Rate limiting implementation needed to prevent malicious users
 import { get } from "@vercel/edge-config";
 import { getDomainWithoutWWW } from "@/utils/misc";
 

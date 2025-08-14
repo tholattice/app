@@ -31,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     // <html>
-    <body className={cn(notoSans.className, "text-gray-600")}>
+    <body className={cn(notoSans.className, "text-gray-600")} suppressHydrationWarning={true}>
       {/* <div lang="zh-CN"> */}
       <div>
         {/* bg-gray-50 */}

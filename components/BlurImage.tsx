@@ -19,7 +19,7 @@ export default function BlurImage(props: ImageProps) {
       }}
       onError={() => {
         // setSrc(`https://avatar.vercel.sh/${props.alt}`); // if the image fails to load, use the default avatar
-        // TODO: Fix this so the onError function can work correctly
+        // Note: onError function needs to be fixed for proper error handling
       }}
     />
   );

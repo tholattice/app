@@ -7,18 +7,15 @@ export const PLANS = [
           monthly: {
             amount: 197,
             priceIds: {
-              test: "price_1NxMDBEr0qgwGExZ6fGM73cn",
-              production: "price_1NxMDBEr0qgwGExZ6fGM73cn",
-              // Added the same product and test price ID's to this pricing plan. Not sure what impact this will have on my pricing page.
+              test: process.env.STRIPE_ESSENTIALS_MONTHLY_TEST_PRICE_ID || "price_1NxMDBEr0qgwGExZ6fGM73cn",
+              production: process.env.STRIPE_ESSENTIALS_MONTHLY_PROD_PRICE_ID || "price_1NxMDBEr0qgwGExZ6fGM73cn",
             },
           },
           yearly: {
-           amount: 197*12*0.75,
-        //    TODO: 20% discount. Try to find a way of referencing the monthly cost from the prior object in order to automate this yearly calculation
-            priceIds: {
-              test: "price_1NxMKBEr0qgwGExZ9QajnMVh",
-              production: "price_1NxMKBEr0qgwGExZ9QajnMVh",
-              // Not sure where these priving id's for annual plans come from
+           amount: calculateYearlyAmount(197),
+           priceIds: {
+              test: process.env.STRIPE_ESSENTIALS_YEARLY_TEST_PRICE_ID || "price_1NxMKBEr0qgwGExZ9QajnMVh",
+              production: process.env.STRIPE_ESSENTIALS_YEARLY_PROD_PRICE_ID || "price_1NxMKBEr0qgwGExZ9QajnMVh",
             },
           },
         },
@@ -31,15 +28,15 @@ export const PLANS = [
         monthly: {
           amount: 397,
           priceIds: {
-            test: "price_1NxMXpEr0qgwGExZKwZMOnKn",
-            production: "price_1NxMXpEr0qgwGExZKwZMOnKn",
+            test: process.env.STRIPE_PROFESSIONAL_MONTHLY_TEST_PRICE_ID || "price_1NxMXpEr0qgwGExZKwZMOnKn",
+            production: process.env.STRIPE_PROFESSIONAL_MONTHLY_PROD_PRICE_ID || "price_1NxMXpEr0qgwGExZKwZMOnKn",
           },
         },
         yearly: {
-          amount: 397*12*0.75,
+          amount: calculateYearlyAmount(397),
           priceIds: {
-            test: "price_1NxMXpEr0qgwGExZRhRxzZTS",
-            production: "price_1NxMXpEr0qgwGExZRhRxzZTS",
+            test: process.env.STRIPE_PROFESSIONAL_YEARLY_TEST_PRICE_ID || "price_1NxMXpEr0qgwGExZRhRxzZTS",
+            production: process.env.STRIPE_PROFESSIONAL_YEARLY_PROD_PRICE_ID || "price_1NxMXpEr0qgwGExZRhRxzZTS",
           },
         },
       },
@@ -47,25 +44,30 @@ export const PLANS = [
     {
       name: "高级订阅 (Premium Subscription)",
       slug: "premium",
-      activeMasseuses: 20, // arbitrary large number to represent unlimited – might need to change this in the future
+      activeMasseuses: 20, // arbitrary large number to represent unlimited – might need to change this in the future
       price: {
         monthly: {
           amount: 597,
           priceIds: {
-            test: "price_1NxMf7Er0qgwGExZrXRd7uhh",
-            production: "price_1NxMf7Er0qgwGExZrXRd7uhh",
+            test: process.env.STRIPE_PREMIUM_MONTHLY_TEST_PRICE_ID || "price_1NxMf7Er0qgwGExZrXRd7uhh",
+            production: process.env.STRIPE_PREMIUM_MONTHLY_PROD_PRICE_ID || "price_1NxMf7Er0qgwGExZrXRd7uhh",
           },
         },
         yearly: {
-          amount: 597*12*0.75,
+          amount: calculateYearlyAmount(597),
           priceIds: {
-            test: "price_1NxMf7Er0qgwGExZOLl82dzo",
-            production: "price_1NxMf7Er0qgwGExZOLl82dzo",
+            test: process.env.STRIPE_PREMIUM_YEARLY_TEST_PRICE_ID || "price_1NxMf7Er0qgwGExZOLl82dzo",
+            production: process.env.STRIPE_PREMIUM_YEARLY_PROD_PRICE_ID || "price_1NxMf7Er0qgwGExZOLl82dzo",
           },
         },
       },
     },
   ];
+
+// Helper function to calculate yearly amount from monthly amount
+export function calculateYearlyAmount(monthlyAmount: number, discountPercentage: number = 0.75): number {
+  return monthlyAmount * 12 * discountPercentage;
+}
 
 // Updated the pricing Ids for the rest of the plans. Still not sure what purpose this has?
 

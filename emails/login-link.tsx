@@ -32,7 +32,7 @@ export default function LoginLink({
             <Section className="mt-8">
               <Img
                 src={THOLATTICE_LOGO}
-                // TODO: the Tholattice_Logo needs to be store somewhere publicly accessible.
+                // Note: The Tholattice_Logo needs to be stored somewhere publicly accessible
                 // src="https://www.tholattice.com/_next/image?url=%2FTholattice_HorizontalChinese_111322.png&w=640&q=75"
                 width="40"
                 height="40"

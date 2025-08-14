@@ -13,7 +13,7 @@ import { BsCurrencyDollar } from "react-icons/bs";
 import { CgWebsite } from "react-icons/cg";
 import { GiWarpPipe } from "react-icons/gi";
 import { LiaWeixin } from "react-icons/lia";
-import { MdDashboard } from "react-icons/md";
+import { MdDashboard, MdNotifications, MdAnalytics, MdSettings, MdEvent, MdPeople } from "react-icons/md";
 
 const routes = [
   {
@@ -37,6 +37,11 @@ const routes = [
     href: "/dashboard/customers",
   },
   {
+    label: "Employees",
+    icon: <MdPeople size={20} />,
+    href: "/dashboard/employees",
+  },
+  {
     label: "Marketing",
     icon: <LiaWeixin size={20} />,
     href: "/dashboard/marketing",
@@ -50,6 +55,26 @@ const routes = [
     label: "Website",
     icon: <CgWebsite size={20} />,
     href: "/dashboard/website",
+  },
+  {
+    label: "Appointments",
+    icon: <MdEvent size={20} />,
+    href: "/dashboard/appointments",
+  },
+  {
+    label: "Analytics",
+    icon: <MdAnalytics size={20} />,
+    href: "/dashboard/analytics",
+  },
+  {
+    label: "Notifications",
+    icon: <MdNotifications size={20} />,
+    href: "/dashboard/notifications",
+  },
+  {
+    label: "Settings",
+    icon: <MdSettings size={20} />,
+    href: "/dashboard/settings",
   },
 ];
 

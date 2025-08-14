@@ -178,6 +178,8 @@ model WorkingHours {
   @@unique([masseuseId, dayOfWeek])
 }
 
+
+
 model HolidayHours {
   id          String    @id @default(cuid())
   holidayDate DateTime

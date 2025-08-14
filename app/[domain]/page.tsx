@@ -55,8 +55,8 @@ export default async function TenantHomePage({
 
   return (
     <div>
-      <Hero />
-      <Services />
+      <Hero siteData={data} />
+      <Services siteData={data} />
       <About />
       <Filler />
       <Gallery />

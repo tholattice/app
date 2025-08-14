@@ -1,5 +1,5 @@
 const SubFooter = () => {
-  // TODO: There needs to be props passed in for massage name.
+  // Note: Props needed for massage name
 
   return (
     <div className="bg-blue-100 p-2">

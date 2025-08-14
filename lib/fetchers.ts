@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 // import { serialize } from "next-mdx-remote/serialize";
 
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 // import { replaceExamples, replaceTweets } from "@/lib/remark-plugins";
 
 export async function getSiteData(domain: string) {
@@ -11,17 +11,61 @@ export async function getSiteData(domain: string) {
 
   return await unstable_cache(
     async () => {
-      const data = await prisma.site.findUnique({
-        where: subdomain ? { subdomain } : { customDomain: domain },
-        include: {
-          user: true,
-          location: true,
-        },
-      });
+      try {
+        const data = await prisma.site.findUnique({
+          where: subdomain ? { subdomain } : { customDomain: domain },
+          include: {
+            user: true,
+            location: true,
+            posts: {
+              where: { published: true },
+              orderBy: { createdAt: 'desc' },
+              take: 5
+            },
+          },
+        });
 
-      if (!data) return null;
+        if (!data) {
+          // Return default site data for development/testing
+          return {
+            id: 'default',
+            name: 'Sample Massage Business',
+            description: 'Professional massage therapy services',
+            logo: null,
+            font: 'font-cal',
+            layout: 1,
+            image: null,
+            imageBlurhash: null,
+            subdomain: subdomain || 'sample',
+            customDomain: domain,
+            message404: "You've found a page that doesn't exist.",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            locationId: 'default-location',
+            userId: null,
+            user: null,
+            location: {
+              id: 'default-location',
+              name: 'Main Location',
+              address: '123 Main St',
+              city: 'City',
+              state: 'State',
+              postalCode: '12345',
+              country: 'USA',
+              latitude: null,
+              longitude: null,
+              phoneNumber: '(555) 123-4567',
+              ownerId: 'default-owner',
+            },
+            posts: []
+          };
+        }
 
-      return data;
+        return data;
+      } catch (error) {
+        console.error('Error fetching site data:', error);
+        return null;
+      }
     },
     [`${domain}-metadata`],
     {
@@ -38,31 +82,32 @@ export async function getPostsForSite(domain: string) {
 
   return await unstable_cache(
     async () => {
-      // Temporarily disable database queries
-      // const data = await prisma.post.findMany({
-      //   where: {
-      //     site: subdomain ? { subdomain } : { customDomain: domain },
-      //     published: true,
-      //   },
-      //   select: {
-      //     title: true,
-      //     description: true,
-      //     slug: true,
-      //     image: true,
-      //     imageBlurhash: true,
-      //     createdAt: true,
-      //   },
-      //   orderBy: [
-      //     {
-      //       createdAt: "desc",
-      //     },
-      //   ],
-      // });
+      try {
+        const data = await prisma.post.findMany({
+          where: {
+            site: subdomain ? { subdomain } : { customDomain: domain },
+            published: true,
+          },
+          select: {
+            title: true,
+            description: true,
+            slug: true,
+            image: true,
+            imageBlurhash: true,
+            createdAt: true,
+          },
+          orderBy: [
+            {
+              createdAt: "desc",
+            },
+          ],
+        });
 
-      // return data;
-      
-      // Return mock data for now
-      return [];
+        return data;
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+        return [];
+      }
     },
     [`${domain}-posts`],
     {

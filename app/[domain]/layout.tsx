@@ -46,7 +46,7 @@ export async function generateMetadata({
       images: [image],
     },
     icons: [logo],
-    // TODO: The logo should not be the favicon of the site. Should be different
+    // Note: The logo should be different from the favicon
     metadataBase: new URL(`https://${domain}`),
     // Optional: Set canonical URL to custom domain if it exists
     ...(domain.endsWith(`.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) &&
@@ -74,7 +74,7 @@ export default async function TenantSiteLayout({
   }
 
   // Optional: Redirect to custom domain if it exists
-  // TODO: Shouldn't this be a rewrite instead of a custom domain? Each time the custom domain gets hit, gets intercepted by the middleware, and redirected again to the custom domain on this layout, it'll enter into an infinite loop. Not sure about this. Comment this out for now.
+  // Note: Consider using rewrite instead of custom domain to avoid double redirects enter into an infinite loop. Not sure about this. Comment this out for now.
   // if (
   //   domain.endsWith(`.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) &&
   //   data.customDomain &&

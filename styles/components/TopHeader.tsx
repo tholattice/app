@@ -6,7 +6,7 @@ import { LayoutInterface } from "../layouts/layouts";
 import { formatPhoneNumber } from "@/utils/format";
 
 const TopHeader = ({ data: props }: { data: LayoutInterface }) => {
-  // TODO: Work on the data props for these to fill in for time, phone, address, and socials
+  // Note: Data props needed for time, phone, address, and socials
   return (
     <div className="bg-[#EFF0FB] border-b transition-all border-gray-200 w-full">
       <div className="flex flex-row max-w-screen-xl p-2 px-4 sm:px-8 md:px-12 lg:px-18 w-full m-auto justify-between items-center font-medium text-sm">
@@ -19,7 +19,7 @@ const TopHeader = ({ data: props }: { data: LayoutInterface }) => {
               className="text-black text-opacity-50 hover:text-opacity-100 transition-all ease"
               href={`tel:${props.location?.phoneNumber}`}
             >
-              {/* TODO: Add real telephone number, not yours. Needs to be properly formated as well */}
+              {/* Note: Add real telephone number with proper formatting */}
               <CiPhone />
             </Link>
             {formatPhoneNumber(props.location?.phoneNumber as string, false)}
@@ -29,7 +29,7 @@ const TopHeader = ({ data: props }: { data: LayoutInterface }) => {
           </div>
         </div>
         <div className="flex flex-row gap-6 transition-all">
-          {/* TODO: add dynamic links based off of finished social media pages */}
+          {/* Note: Add dynamic links for social media pages */}
           <Link
             className="text-black text-opacity-50 hover:text-opacity-100 transition-all ease"
             href="https://www.yelp.com/"
@@ -39,7 +39,7 @@ const TopHeader = ({ data: props }: { data: LayoutInterface }) => {
           {/* <Link href="">
             <FaGoogle />
           </Link> */}
-          {/* TODO: Not really sure how to point to Google my business page. Needs fixing */}
+          {/* Note: Google My Business page link needs to be configured */}
           <Link
             className="text-black text-opacity-50 hover:text-opacity-100 transition-all ease"
             href="https://www.facebook.com/"

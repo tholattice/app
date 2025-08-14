@@ -62,7 +62,7 @@ export const languages = [
   },
 ];
 
-// TODO: May want to include these constants in a separate folder, especially the languages where you can import them to your providers file
+// Note: Consider moving these constants to a separate folder for better organization
 
 const Header = () => {
   // const [nav, setNav] = useState(false);

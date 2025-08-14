@@ -14,8 +14,14 @@ import { josefin, mrDeHaviland } from "../fonts/fonts";
 
 const HeroCarousel = ({
   slides,
+  siteData,
 }: {
   slides: { url: string; title: string }[];
+  siteData?: {
+    name?: string | null;
+    description?: string | null;
+    image?: string | null;
+  };
 }) => {
   const { open } = useMobileMenuContext();
   const [activeSlide, setActiveSlide] = useState(0);
@@ -71,16 +77,13 @@ const HeroCarousel = ({
                     mrDeHaviland.className
                   )}
                 >
-                  Visit one of our multiple
+                  {siteData?.name ? `Welcome to ${siteData.name}` : "Visit one of our multiple"}
                 </h2>
                 <h1 className="mb-4 text-4xl lg:text-6xl text-white text-opacity-90">
                   {slide.title}
                 </h1>
                 <p className="mb-4 md:mb-6 opacity-80 font-normal text-md md:text-lg lg:text-xl text-white overflow-hidden text-ellipsis line-clamp-2 sm:line-clamp-3 md:line-clamp-4">
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                  Voluptatem ea quo aspernatur? Libero atque id eos veniam,
-                  asperiores doloremque aut fugiat velit sunt debitis molestias
-                  at ipsum. Iure, sapiente aspernatur!
+                  {siteData?.description || "Professional massage therapy services to help you relax and rejuvenate. Book your appointment today for a truly therapeutic experience."}
                 </p>
                 <div className="group transition-all duration-[400ms]">
                   <Link href="/schedule-appointment">

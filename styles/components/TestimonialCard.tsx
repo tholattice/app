@@ -11,7 +11,7 @@ export interface CardInterface {
 const Card = ({ description, headshot, name }: CardInterface) => {
   return (
     <div className="bg-white bg-opacity-90 flex flex-col justify-between gap-2 shadow-sm p-8 w-full h-[20rem] m-auto">
-      {/* TODO: Find way of preventing paragraph text from pushing name and headshot from spilling over, in case the customer testimonial is too long */}
+      {/* Note: Need to prevent long testimonials from pushing name and headshot out of position */}
       <div>
         <Image
           src={RightQuotationMarks}

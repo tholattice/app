@@ -8,13 +8,17 @@ export interface UserInterface {
 }
 
 export interface LocationInterface {
+  id: string;
   name: string;
   address: string;
   city: string;
   state: string;
   postalCode: string;
   country: string;
-  phoneNumber: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  phoneNumber: string;
+  ownerId: string;
 }
 
 export interface LayoutInterface {

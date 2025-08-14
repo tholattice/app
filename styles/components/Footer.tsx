@@ -32,7 +32,7 @@ const Footer = () => {
             </p>
           </li>
           <li className="relative">
-            {/* TODO: swap p tag for Link tag with mailto href */}
+            {/* Note: Consider using Link tag with mailto href instead of p tag */}
             <span
               className={cn(
                 styles.transitionRightToLeftUnderline,

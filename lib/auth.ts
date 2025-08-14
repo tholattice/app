@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import GoogleProvider from "next-auth/providers/google";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 // Custom WeChat OAuth provider
 const WeChatProvider = {
@@ -29,15 +29,9 @@ const WeChatProvider = {
   clientSecret: process.env.WECHAT_CLIENT_SECRET!,
 };
 
-export const {
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
+export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  trustHost: true,
-  debug: false, // Set to true only when debugging auth issues
+  debug: false,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -45,74 +39,21 @@ export const {
       authorization: {
         params: {
           prompt: "consent",
-          access_type: "offline",
           response_type: "code"
         }
       }
     }),
-    WeChatProvider,
+    WeChatProvider as any,
   ],
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
-  cookies: {
-    sessionToken: {
-      name: `${process.env.VERCEL_DEPLOYMENT === "1" ? "__Secure-" : ""}next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.VERCEL_DEPLOYMENT === "1",
-      },
-    },
-  },
   callbacks: {
-    async signIn({ user, account, profile }) {
-      // Temporarily disable database operations
-      // if (account?.provider === "google" && profile?.email) {
-      //   // Check if user already exists
-      //   const existingUser = await prisma.user.findUnique({
-      //     where: { email: profile.email }
-      //   });
-
-      //   if (existingUser) {
-      //     // Update user info from Google profile
-      //     await prisma.user.update({
-      //       where: { email: profile.email },
-      //       data: {
-      //         name: profile.name || existingUser.name,
-      //         image: profile.picture || existingUser.image,
-      //       }
-      //     });
-      //   }
-      // }
-      return true;
-    },
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.user = {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-        };
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token.user) {
-        session.user = token.user as any;
+    async session({ session, user }) {
+      if (session.user && user?.id) {
+        session.user.id = user.id;
       }
       return session;
     },
-    redirect: async ({ url, baseUrl }) => {
-      // Always redirect to dashboard after successful authentication
-      return `${baseUrl}/dashboard`;
-    },
   },
-  session: {
-    strategy: "jwt",
+  pages: {
+    signIn: "/login",
   },
-  secret: process.env.NEXTAUTH_SECRET,
 });

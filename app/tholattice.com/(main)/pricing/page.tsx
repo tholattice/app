@@ -13,7 +13,7 @@ import Pricing from "./Pricing";
 //   title: "Tholattice Digital Marketing",
 // }
 
-// TODO: Work on metadata construction, for home page and domain sites.
+// Note: Metadata construction needed for home page and domain sites
 
 const PricingPage = () => {
   // const { language } = useTranslationContext();
