@@ -49,6 +49,21 @@ export default async function middleware(req: NextRequest) {
     );
   }
 
+  // Handle Vercel deployment domain
+  if (hostname.includes('vercel.app')) {
+    // Rewrite auth and dashboard routes to tholattice.com
+    if (path.startsWith("/auth") || path.startsWith("/dashboard")) {
+      return NextResponse.rewrite(
+        new URL(`/tholattice.com${path}`, req.url),
+      );
+    }
+
+    // Rewrite main site routes to tholattice.com
+    return NextResponse.rewrite(
+      new URL(`/tholattice.com${path === "/" ? "" : path}`, req.url),
+    );
+  }
+
   // Handle subdomain routing for tenant sites
   if (hostname.startsWith("app.")) {
     // Redirect old app subdomain to new dashboard
