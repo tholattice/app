@@ -64,8 +64,13 @@ export default async function middleware(req: NextRequest) {
 
   // Handle Vercel deployment domain
   if (hostname.includes('vercel.app')) {
-    // Rewrite auth and dashboard routes to tholattice.com
-    if (path.startsWith("/auth") || path.startsWith("/dashboard")) {
+    // For Vercel deployment, handle dashboard routes directly without rewriting
+    if (path.startsWith("/dashboard")) {
+      return NextResponse.next();
+    }
+    
+    // Rewrite auth routes to tholattice.com
+    if (path.startsWith("/auth")) {
       return NextResponse.rewrite(
         new URL(`/tholattice.com${path}`, req.url),
       );
