@@ -6,7 +6,7 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig = {
   // Performance optimizations
   experimental: {
-    optimizeCss: true,
+    optimizeCss: false, // Temporarily disabled to fix production styling issues
     optimizePackageImports: [
       '@heroicons/react', 
       '@headlessui/react', 
