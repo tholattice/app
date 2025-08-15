@@ -82,7 +82,7 @@ export function useEmployeeSchedules(): UseEmployeeSchedulesReturn {
   const [error, setError] = useState<string | null>(null);
 
   // Real-time connection
-  const { isConnected, lastMessage } = useRealtime('/api/realtime/connect');
+  const { isConnected, lastEvent } = useRealtime();
 
   const fetchData = useCallback(async () => {
     try {
@@ -111,11 +111,9 @@ export function useEmployeeSchedules(): UseEmployeeSchedulesReturn {
 
   // Real-time updates
   useEffect(() => {
-    if (lastMessage && isConnected) {
+    if (lastEvent && isConnected) {
       try {
-        const message = JSON.parse(lastMessage);
-        
-        if (message.type === 'employee_schedule_update') {
+        if (lastEvent.type === 'employee_schedule_update') {
           // Refetch data when we receive a real-time update
           fetchData();
         }
@@ -123,7 +121,7 @@ export function useEmployeeSchedules(): UseEmployeeSchedulesReturn {
         console.error('Error parsing real-time message:', err);
       }
     }
-  }, [lastMessage, isConnected, fetchData]);
+  }, [lastEvent, isConnected, fetchData]);
 
   const createTimeOffRequest = useCallback(async (requestData: {
     masseuseId: string;
