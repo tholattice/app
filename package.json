@@ -11,7 +11,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "analyze": "ANALYZE=true next build",
+    "build:analyze": "ANALYZE=true next build",
+    "bundle-size": "npm run build && npx next-bundle-analyzer"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
@@ -48,6 +51,7 @@
     "bcrypt": "^6.0.0",
     "chart.js": "^4.4.0",
     "clsx": "^2.0.0",
+    "critters": "^0.0.25",
     "dayjs": "^1.11.10",
     "emoji-regex": "9.2.2",
     "eslint": "8.43.0",
@@ -86,6 +90,7 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^13.4.12",
+    "@svgr/webpack": "^8.1.0",
     "@types/faker": "5.5.3",
     "@types/react-modal": "^3.16.3",
     "encoding": "^0.1.13",

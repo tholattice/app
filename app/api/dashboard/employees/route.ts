@@ -160,6 +160,8 @@ export async function GET(request: NextRequest) {
         .filter(appt => appt.appointmentDate >= startOfMonth)
         .reduce((sum, appt) => sum + (appt.duration * 80), 0);
       
+      // Working hours data processing
+      
       return {
         id: masseuse.id,
         name: masseuse.user?.name || masseuse.masseuseName,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import {
   CalendarIcon,
   UsersIcon,
@@ -17,15 +17,13 @@ interface DashboardStats {
   upcomingAppointments: number;
 }
 
-export default function DashboardOverview() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalAppointments: 0,
-    totalCustomers: 0,
-    totalRevenue: 0,
-    upcomingAppointments: 0,
-  });
+interface DashboardOverviewProps {
+  initialStats: DashboardStats;
+}
 
-  const [loading, setLoading] = useState(true);
+const DashboardOverview = memo(function DashboardOverview({ initialStats }: DashboardOverviewProps) {
+  const [stats, setStats] = useState<DashboardStats>(initialStats);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
@@ -33,35 +31,51 @@ export default function DashboardOverview() {
   const { isConnected, error: realtimeError } = useRealtimeStats();
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/dashboard/stats');
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch dashboard statistics');
+    // Only fetch if we don't have initial data
+    if (initialStats.totalAppointments === 0 && initialStats.totalCustomers === 0) {
+      const fetchStats = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          const response = await fetch('/api/dashboard/stats');
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch dashboard statistics');
+          }
+          
+          const data = await response.json();
+          setStats(data);
+          setLastUpdated(new Date());
+        } catch (error) {
+          console.error("Error fetching dashboard stats:", error);
+          setError(error instanceof Error ? error.message : 'An error occurred');
+        } finally {
+          setLoading(false);
         }
-        
-        const data = await response.json();
-        setStats(data);
-        setLastUpdated(new Date());
-      } catch (error) {
-        console.error("Error fetching dashboard stats:", error);
-        setError(error instanceof Error ? error.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    fetchStats();
+      fetchStats();
+    }
 
-    // Set up polling as fallback for real-time updates
-    const pollInterval = setInterval(fetchStats, 30000); // Poll every 30 seconds
+    // Set up polling as fallback for real-time updates (only if we have initial data)
+    if (initialStats.totalAppointments > 0 || initialStats.totalCustomers > 0) {
+      const pollInterval = setInterval(async () => {
+        try {
+          const response = await fetch('/api/dashboard/stats');
+          if (response.ok) {
+            const data = await response.json();
+            setStats(data);
+            setLastUpdated(new Date());
+          }
+        } catch (error) {
+          console.error("Error polling dashboard stats:", error);
+        }
+      }, 30000); // Poll every 30 seconds
 
-    return () => clearInterval(pollInterval);
-  }, []);
+      return () => clearInterval(pollInterval);
+    }
+  }, [initialStats]);
 
   const statCards = [
     {
@@ -191,5 +205,7 @@ export default function DashboardOverview() {
       )}
     </div>
   );
-}
+});
+
+export default DashboardOverview;
 

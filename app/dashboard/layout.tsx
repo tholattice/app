@@ -46,13 +46,13 @@ export default async function DashboardLayout({
     <DashboardClientWrapper>
       <DarkModeProvider>
         <div className={`${font.className} bg-white dark:bg-gray-900 transition-colors duration-200`}>
-          <div className="justify-between bg-white dark:bg-gray-900">
-            <Sidebar />
-          </div>
-          <main className="flex flex-col space-y-16 ml-20 min-h-screen bg-gray-50 dark:bg-gray-800">
-            <Header customers={listCustomers} />
-            <Suspense fallback={<Loader />}>{children}</Suspense>
-          </main>
+                  <div className="justify-between bg-white dark:bg-gray-900">
+          <Sidebar />
+        </div>
+        <main className="flex flex-col space-y-16 ml-20 min-h-screen bg-gray-50 dark:bg-gray-800">
+          <Header customers={listCustomers} />
+          <Suspense fallback={<Loader />}>{children}</Suspense>
+        </main>
         </div>
       </DarkModeProvider>
     </DashboardClientWrapper>

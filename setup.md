@@ -1,8 +1,6 @@
 # Tholattice App Setup Guide
 
-## Authentication Setup
-
-### 1. Environment Variables
+## Environment Variables
 
 Create a `.env.local` file in the root directory with the following variables:
 
@@ -20,7 +18,7 @@ GOOGLE_CLIENT_SECRET="your-google-client-secret"
 FACEBOOK_CLIENT_ID="your-facebook-client-id"
 FACEBOOK_CLIENT_SECRET="your-facebook-client-secret"
 
-# Email Configuration (Required for email login)
+# Email Configuration
 RESEND_API_KEY="your-resend-api-key"
 
 # Stripe Configuration

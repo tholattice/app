@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 
 export const config = {
   matcher: [
@@ -29,7 +28,8 @@ export default async function middleware(req: NextRequest) {
       }
     }
     
-    // For development, skip dashboard routes - let them be handled directly
+    // For development, handle dashboard routes directly
+    // Authentication will be handled at the page level
     if (path.startsWith("/dashboard")) {
       return NextResponse.next();
     }
@@ -64,7 +64,8 @@ export default async function middleware(req: NextRequest) {
 
   // Handle Vercel deployment domain
   if (hostname.includes('vercel.app')) {
-    // For Vercel deployment, handle dashboard routes directly without rewriting
+    // For Vercel deployment, handle dashboard routes directly
+    // Authentication will be handled at the page level
     if (path.startsWith("/dashboard")) {
       return NextResponse.next();
     }

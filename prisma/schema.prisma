@@ -64,6 +64,8 @@ model Masseuse {
   user              User               @relation(fields: [masseuseName, masseuseId], references: [name, id])
   servicesOffered   MasseuseService    @relation(fields: [masseuseServiceId], references: [id])
   workingHours      WorkingHours[]
+  timeOffRequests   TimeOffRequest[]
+  scheduleChanges   ScheduleChange[]
 
   @@unique([masseuseName, masseuseId])
 }
@@ -162,6 +164,7 @@ model Location {
   masseuses    LocationMasseuse[]
   Site         Site[]
   workingHours WorkingHours[]
+  scheduleChanges ScheduleChange[]
 }
 
 model WorkingHours {
@@ -178,6 +181,67 @@ model WorkingHours {
   @@unique([masseuseId, dayOfWeek])
 }
 
+model TimeOffRequest {
+  id          String   @id @default(cuid())
+  masseuseId  String
+  masseuse    Masseuse @relation(fields: [masseuseId], references: [id], onDelete: Cascade)
+  startDate   DateTime
+  endDate     DateTime
+  reason      String
+  status      TimeOffStatus @default(PENDING)
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([masseuseId])
+  @@index([status])
+  @@index([startDate, endDate])
+}
+
+model ScheduleChange {
+  id          String   @id @default(cuid())
+  masseuseId  String
+  masseuse    Masseuse @relation(fields: [masseuseId], references: [id], onDelete: Cascade)
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id])
+  dayOfWeek   Int
+  oldStartTime DateTime?
+  oldEndTime   DateTime?
+  newStartTime DateTime?
+  newEndTime   DateTime?
+  changeType   ScheduleChangeType
+  reason       String?
+  approvedBy   String?
+  approvedAt   DateTime?
+  createdAt    DateTime @default(now())
+  status       ScheduleChangeStatus @default(PENDING)
+
+  @@index([masseuseId])
+  @@index([locationId])
+  @@index([status])
+}
+
+enum TimeOffStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CANCELLED
+}
+
+enum ScheduleChangeType {
+  ADD
+  MODIFY
+  REMOVE
+  SWAP
+}
+
+enum ScheduleChangeStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CANCELLED
+}
 
 
 model HolidayHours {

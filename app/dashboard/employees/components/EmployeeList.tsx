@@ -31,9 +31,9 @@ interface Employee {
   appointmentCount: number;
   services: string[];
   workingHours: {
-    dayOfWeek: number;
-    openTime: Date;
-    closeTime: Date;
+    day: number;
+    startTime: Date;
+    endTime: Date;
   }[];
   wechatUsername: string;
 }
@@ -161,10 +161,10 @@ export default function EmployeeList() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Employees</h2>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex items-center space-x-4 min-w-0">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Employees</h2>
           
           {/* Real-time status indicator */}
           <div className="flex items-center space-x-1">
@@ -175,11 +175,11 @@ export default function EmployeeList() {
           </div>
         </div>
         
-        <div className="flex items-center space-x-4">
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+          <span className="text-xs text-gray-500 dark:text-gray-400 text-center sm:text-left">
             Updated: {lastUpdated.toLocaleTimeString()}
           </span>
-          <div className="flex space-x-2">
+          <div className="flex justify-center sm:justify-start space-x-2">
             {["all", "active", "inactive"].map((filterOption) => (
               <button
                 key={filterOption}
@@ -196,7 +196,7 @@ export default function EmployeeList() {
           </div>
           <button
             onClick={() => router.push('/dashboard/employees/new')}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             <PlusIcon className="w-4 h-4 mr-2" />
             Add Employee
@@ -205,40 +205,40 @@ export default function EmployeeList() {
       </div>
 
       {/* Employee Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div className="bg-gray-50 dark:bg-gray-700 p-3 sm:p-4 rounded-lg">
           <div className="flex items-center">
-            <UserIcon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.total}</p>
+            <UserIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
+            <div className="ml-2 sm:ml-3">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300">Total</p>
+              <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">{stats.total}</p>
             </div>
           </div>
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+        <div className="bg-gray-50 dark:bg-gray-700 p-3 sm:p-4 rounded-lg">
           <div className="flex items-center">
-            <ClockIcon className="w-8 h-8 text-green-600 dark:text-green-400" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Active</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats?.active || 0}</p>
+            <ClockIcon className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 dark:text-green-400" />
+            <div className="ml-2 sm:ml-3">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300">Active</p>
+              <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">{stats?.active || 0}</p>
             </div>
           </div>
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+        <div className="bg-gray-50 dark:bg-gray-700 p-3 sm:p-4 rounded-lg">
           <div className="flex items-center">
-            <CalendarIcon className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Appointments</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.totalAppointments}</p>
+            <CalendarIcon className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 dark:text-purple-400" />
+            <div className="ml-2 sm:ml-3">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300">Appointments</p>
+              <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">{stats.totalAppointments}</p>
             </div>
           </div>
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+        <div className="bg-gray-50 dark:bg-gray-700 p-3 sm:p-4 rounded-lg">
           <div className="flex items-center">
-            <CogIcon className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Revenue</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">${(stats?.totalRevenue || 0).toLocaleString()}</p>
+            <CogIcon className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600 dark:text-yellow-400" />
+            <div className="ml-2 sm:ml-3">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300">Revenue</p>
+              <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">${(stats?.totalRevenue || 0).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -257,9 +257,9 @@ export default function EmployeeList() {
           filteredEmployees.map((employee) => (
             <div
               key={employee.id}
-              className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200"
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 gap-4"
             >
-              <div className="flex items-center space-x-4">
+              <div className="flex items-start space-x-4 flex-1 min-w-0">
                 <div className="flex-shrink-0">
                   {employee.image ? (
                     <Image 
@@ -277,33 +277,33 @@ export default function EmployeeList() {
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                       {employee.name}
                     </p>
                     <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(employee.status)}`}
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(employee.status)} self-start sm:self-auto`}
                     >
                       {employee.status}
                     </span>
                   </div>
                   
-                  <div className="flex items-center space-x-4 mt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                     <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                      <EnvelopeIcon className="w-3 h-3 mr-1" />
-                      {employee.email}
+                      <EnvelopeIcon className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">{employee.email}</span>
                     </div>
                     <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                      <CalendarIcon className="w-3 h-3 mr-1" />
+                      <CalendarIcon className="w-3 h-3 mr-1 flex-shrink-0" />
                       {employee.appointmentCount} appointments
                     </div>
                     <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                      <CogIcon className="w-3 h-3 mr-1" />
+                      <CogIcon className="w-3 h-3 mr-1 flex-shrink-0" />
                       {employee.services.length} services
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-4 mt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                       <span className="text-green-600 dark:text-green-400 font-medium">${(employee.totalRevenue || 0).toLocaleString()}</span>
                       <span className="ml-1">total revenue</span>
@@ -313,8 +313,8 @@ export default function EmployeeList() {
                       <span className="ml-1">this month</span>
                     </div>
                     {employee.lastAppointment && (
-                      <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                        <ClockIcon className="w-3 h-3 mr-1" />
+                      <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 sm:col-span-2 lg:col-span-1">
+                        <ClockIcon className="w-3 h-3 mr-1 flex-shrink-0" />
                         Last: {new Date(employee.lastAppointment).toLocaleDateString()}
                       </div>
                     )}
@@ -322,7 +322,7 @@ export default function EmployeeList() {
                 </div>
               </div>
               
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-center sm:justify-end space-x-2 flex-shrink-0">
                 <button
                   onClick={() => setSelectedEmployee(employee)}
                   className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -356,8 +356,8 @@ export default function EmployeeList() {
 
       {/* Employee Details Modal */}
       {selectedEmployee && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Employee Details</h3>
               <button
@@ -369,7 +369,7 @@ export default function EmployeeList() {
             </div>
             
             <div className="space-y-4">
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
                 {selectedEmployee.image ? (
                   <Image 
                     src={selectedEmployee.image} 
@@ -383,14 +383,14 @@ export default function EmployeeList() {
                     <span className="text-white font-medium text-lg">{getInitials(selectedEmployee.name)}</span>
                   </div>
                 )}
-                <div>
-                  <h4 className="text-xl font-medium text-gray-900 dark:text-white">{selectedEmployee.name}</h4>
-                  <p className="text-gray-600 dark:text-gray-300">{selectedEmployee.email}</p>
-                  <p className="text-gray-600 dark:text-gray-300">WeChat: {selectedEmployee.wechatUsername}</p>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xl font-medium text-gray-900 dark:text-white truncate">{selectedEmployee.name}</h4>
+                  <p className="text-gray-600 dark:text-gray-300 truncate">{selectedEmployee.email}</p>
+                  <p className="text-gray-600 dark:text-gray-300 truncate">WeChat: {selectedEmployee.wechatUsername}</p>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <h5 className="font-medium text-gray-900 dark:text-white mb-2">Performance</h5>
                   <div className="space-y-2">
@@ -421,16 +421,21 @@ export default function EmployeeList() {
                 </div>
               </div>
               
-              {selectedEmployee.workingHours.length > 0 && (
+              {selectedEmployee.workingHours && selectedEmployee.workingHours.length > 0 ? (
                 <div>
                   <h5 className="font-medium text-gray-900 dark:text-white mb-2">Working Hours</h5>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {selectedEmployee.workingHours.map((hours, index) => (
                       <div key={index} className="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded">
-                        {getDayName(hours.dayOfWeek)}: {new Date(hours.openTime).toLocaleTimeString()} - {new Date(hours.closeTime).toLocaleTimeString()}
+                        {getDayName(hours.day)}: {new Date(hours.startTime).toLocaleTimeString()} - {new Date(hours.endTime).toLocaleTimeString()}
                       </div>
                     ))}
                   </div>
+                </div>
+              ) : (
+                <div>
+                  <h5 className="font-medium text-gray-900 dark:text-white mb-2">Working Hours</h5>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No working hours scheduled</p>
                 </div>
               )}
             </div>

@@ -95,6 +95,17 @@ export default function RealtimeNotification() {
         return `Revenue updated: $${event.data.amount?.toLocaleString() || '0'}`;
       case REALTIME_EVENTS.STATS_UPDATED:
         return 'Business stats updated';
+      // Employee Schedule Notifications
+      case 'time_off_request_created':
+        return `${event.data.employeeName || 'Employee'} requested time off from ${event.data.startDate} to ${event.data.endDate}`;
+      case 'schedule_change_created':
+        return `${event.data.employeeName || 'Employee'} requested a schedule change for ${event.data.dayOfWeek}`;
+      case 'request_approved':
+        return `Time off request for ${event.data.employeeName || 'Employee'} has been approved`;
+      case 'request_denied':
+        return `Time off request for ${event.data.employeeName || 'Employee'} has been denied`;
+      case 'employee_schedule_update':
+        return 'Employee schedule has been updated';
       default:
         return 'New update received';
     }
@@ -135,6 +146,14 @@ export default function RealtimeNotification() {
         return "💰";
       case REALTIME_EVENTS.STATS_UPDATED:
         return "📊";
+      // Employee Schedule Icons
+      case 'time_off_request_created':
+      case 'request_approved':
+      case 'request_denied':
+        return "📋";
+      case 'schedule_change_created':
+      case 'employee_schedule_update':
+        return "⏰";
       default:
         return "🔔";
     }
@@ -150,6 +169,16 @@ export default function RealtimeNotification() {
         return "border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800";
       case REALTIME_EVENTS.REVENUE_UPDATED:
         return "border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800";
+      // Employee Schedule Colors
+      case 'time_off_request_created':
+      case 'schedule_change_created':
+        return "border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800";
+      case 'request_approved':
+        return "border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800";
+      case 'request_denied':
+        return "border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800";
+      case 'employee_schedule_update':
+        return "border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:border-purple-800";
       default:
         return "border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800";
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import {
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
@@ -19,50 +19,47 @@ interface BusinessMetrics {
   averageAppointmentDuration: number;
 }
 
-export default function BusinessMetrics() {
-  const [metrics, setMetrics] = useState<BusinessMetrics>({
-    currentMonthAppointments: 0,
-    previousMonthAppointments: 0,
-    appointmentGrowth: 0,
-    currentMonthRevenue: 0,
-    previousMonthRevenue: 0,
-    revenueGrowth: 0,
-    totalMasseuses: 0,
-    averageAppointmentDuration: 0,
-  });
+interface BusinessMetricsProps {
+  initialMetrics: BusinessMetrics;
+}
 
-  const [loading, setLoading] = useState(true);
+const BusinessMetrics = memo(function BusinessMetrics({ initialMetrics }: BusinessMetricsProps) {
+  const [metrics, setMetrics] = useState<BusinessMetrics>(initialMetrics);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/dashboard/business-metrics', {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
+    // Only fetch if we don't have initial data
+    if (initialMetrics.currentMonthAppointments === 0 && initialMetrics.totalMasseuses === 0) {
+      const fetchMetrics = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          const response = await fetch('/api/dashboard/business-metrics', {
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch business metrics');
           }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch business metrics');
+          
+          const data = await response.json();
+          setMetrics(data);
+        } catch (error) {
+          console.error("Error fetching business metrics:", error);
+          setError(error instanceof Error ? error.message : 'An error occurred');
+        } finally {
+          setLoading(false);
         }
-        
-        const data = await response.json();
-        setMetrics(data);
-      } catch (error) {
-        console.error("Error fetching business metrics:", error);
-        setError(error instanceof Error ? error.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    fetchMetrics();
-  }, []);
+      fetchMetrics();
+    }
+  }, [initialMetrics]);
 
   const metricCards = [
     {
@@ -191,4 +188,6 @@ export default function BusinessMetrics() {
       </div>
     </div>
   );
-}
+});
+
+export default BusinessMetrics;

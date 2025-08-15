@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { CalendarIcon, ClockIcon, UserIcon, WifiIcon } from "@heroicons/react/24/outline";
 import { useRealtimeAppointments } from "@/hooks/use-realtime";
 
@@ -15,9 +15,13 @@ interface Appointment {
   location: string;
 }
 
-export default function RecentAppointments() {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
+interface RecentAppointmentsProps {
+  initialAppointments: Appointment[];
+}
+
+const RecentAppointments = memo(function RecentAppointments({ initialAppointments }: RecentAppointmentsProps) {
+  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
@@ -25,35 +29,51 @@ export default function RecentAppointments() {
   const { isConnected, error: realtimeError } = useRealtimeAppointments();
 
   useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/dashboard/recent-appointments');
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch recent appointments');
+    // Only fetch if we don't have initial data
+    if (initialAppointments.length === 0) {
+      const fetchAppointments = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          const response = await fetch('/api/dashboard/recent-appointments');
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch recent appointments');
+          }
+          
+          const data = await response.json();
+          setAppointments(data);
+          setLastUpdated(new Date());
+        } catch (error) {
+          console.error("Error fetching recent appointments:", error);
+          setError(error instanceof Error ? error.message : 'An error occurred');
+        } finally {
+          setLoading(false);
         }
-        
-        const data = await response.json();
-        setAppointments(data);
-        setLastUpdated(new Date());
-      } catch (error) {
-        console.error("Error fetching recent appointments:", error);
-        setError(error instanceof Error ? error.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    fetchAppointments();
+      fetchAppointments();
+    }
 
-    // Set up polling as fallback for real-time updates
-    const pollInterval = setInterval(fetchAppointments, 30000); // Poll every 30 seconds
+    // Set up polling as fallback for real-time updates (only if we have initial data)
+    if (initialAppointments.length > 0) {
+      const pollInterval = setInterval(async () => {
+        try {
+          const response = await fetch('/api/dashboard/recent-appointments');
+          if (response.ok) {
+            const data = await response.json();
+            setAppointments(data);
+            setLastUpdated(new Date());
+          }
+        } catch (error) {
+          console.error("Error polling recent appointments:", error);
+        }
+      }, 30000); // Poll every 30 seconds
 
-    return () => clearInterval(pollInterval);
-  }, []);
+      return () => clearInterval(pollInterval);
+    }
+  }, [initialAppointments]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -227,5 +247,7 @@ export default function RecentAppointments() {
       )}
     </div>
   );
-}
+});
+
+export default RecentAppointments;
 
