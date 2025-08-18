@@ -92,11 +92,12 @@ model LocationClient {
 }
 
 model MasseuseService {
-  id       String          @id @default(cuid())
-  type     MassageType[]
-  addons   MassageAddons[]
-  duration Int[]
-  Masseuse Masseuse[]
+  id           String          @id @default(cuid())
+  type         MassageType[]
+  serviceNames String[]
+  addons       MassageAddons[]
+  duration     Int[]
+  Masseuse     Masseuse[]
 }
 
 model Massage {

@@ -125,7 +125,13 @@ export const REALTIME_EVENTS = {
   EMPLOYEE_UPDATED: 'employee_updated',
   REVENUE_UPDATED: 'revenue_updated',
   STATS_UPDATED: 'stats_updated',
-  NOTIFICATION: 'notification'
+  NOTIFICATION: 'notification',
+  // Employee Schedule Events
+  TIME_OFF_REQUEST_CREATED: 'time_off_request_created',
+  SCHEDULE_CHANGE_CREATED: 'schedule_change_created',
+  REQUEST_APPROVED: 'request_approved',
+  REQUEST_DENIED: 'request_denied',
+  EMPLOYEE_SCHEDULE_UPDATE: 'employee_schedule_update'
 } as const;
 
 export type RealtimeEventType = typeof REALTIME_EVENTS[keyof typeof REALTIME_EVENTS];

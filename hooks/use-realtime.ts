@@ -201,7 +201,7 @@ export function useRealtimeCustomers() {
     }
   }, [lastEvent]);
 
-  return { customers, setCustomers, ...realtime };
+  return { customers, setCustomers, lastEvent, ...realtime };
 }
 
 export function useRealtimeEmployees() {
@@ -228,7 +228,7 @@ export function useRealtimeEmployees() {
     }
   }, [lastEvent]);
 
-  return { employees, setEmployees, ...realtime };
+  return { employees, setEmployees, lastEvent, ...realtime };
 }
 
 export function useRealtimeStats() {
@@ -241,5 +241,5 @@ export function useRealtimeStats() {
     }
   }, [lastEvent]);
 
-  return { stats, setStats, ...realtime };
+  return { stats, setStats, lastEvent, ...realtime };
 }

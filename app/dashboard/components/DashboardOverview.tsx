@@ -27,8 +27,19 @@ const DashboardOverview = memo(function DashboardOverview({ initialStats }: Dash
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  // Real-time connection
-  const { isConnected, error: realtimeError } = useRealtimeStats();
+  // Real-time connection and stats updates
+  const { isConnected, error: realtimeError, lastEvent } = useRealtimeStats();
+
+  // Handle real-time stats updates
+  useEffect(() => {
+    if (lastEvent && lastEvent.type === 'stats_updated') {
+      console.log('Real-time stats update received:', lastEvent);
+      
+      // Update stats immediately when we receive a real-time update
+      setStats(lastEvent.data);
+      setLastUpdated(new Date());
+    }
+  }, [lastEvent]);
 
   useEffect(() => {
     // Only fetch if we don't have initial data
@@ -71,7 +82,7 @@ const DashboardOverview = memo(function DashboardOverview({ initialStats }: Dash
         } catch (error) {
           console.error("Error polling dashboard stats:", error);
         }
-      }, 30000); // Poll every 30 seconds
+      }, 60000); // Poll every 60 seconds as backup
 
       return () => clearInterval(pollInterval);
     }

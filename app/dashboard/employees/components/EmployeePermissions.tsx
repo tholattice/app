@@ -171,7 +171,7 @@ export default function EmployeePermissions() {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Permission Management</h2>
+      <h2 className="text-xl text-gray-900 dark:text-white mb-6">Permission Management</h2>
       
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

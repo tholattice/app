@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRealtime } from './use-realtime';
+import { REALTIME_EVENTS } from '@/lib/realtime';
 
 interface Schedule {
   id: string;
@@ -113,7 +114,14 @@ export function useEmployeeSchedules(): UseEmployeeSchedulesReturn {
   useEffect(() => {
     if (lastEvent && isConnected) {
       try {
-        if (lastEvent.type === 'employee_schedule_update') {
+        if (
+          lastEvent.type === REALTIME_EVENTS.EMPLOYEE_SCHEDULE_UPDATE ||
+          lastEvent.type === REALTIME_EVENTS.TIME_OFF_REQUEST_CREATED ||
+          lastEvent.type === REALTIME_EVENTS.SCHEDULE_CHANGE_CREATED ||
+          lastEvent.type === REALTIME_EVENTS.REQUEST_APPROVED ||
+          lastEvent.type === REALTIME_EVENTS.REQUEST_DENIED
+        ) {
+          console.log('Real-time employee schedule event received:', lastEvent);
           // Refetch data when we receive a real-time update
           fetchData();
         }

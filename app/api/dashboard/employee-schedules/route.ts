@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCachedData, setCachedData, measurePerformance } from "@/lib/performance";
+import { realtimeManager, REALTIME_EVENTS } from "@/lib/realtime";
 
 export async function GET(request: NextRequest) {
   try {
@@ -160,6 +161,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userId = session.user.id;
     const body = await request.json();
     const { type, data } = body;
 
@@ -182,8 +184,21 @@ export async function POST(request: NextRequest) {
           }
         });
 
+        // Broadcast real-time event
+        realtimeManager.broadcastToUser(userId, {
+          type: REALTIME_EVENTS.TIME_OFF_REQUEST_CREATED,
+          data: {
+            id: timeOffRequest.id,
+            employeeName: timeOffRequest.masseuse?.user?.name || timeOffRequest.masseuse?.masseuseName,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            reason: data.reason
+          },
+          timestamp: Date.now()
+        });
+
         // Clear cache
-        const cacheKey = `employee_schedules_${session.user.id}`;
+        const cacheKey = `employee_schedules_${userId}`;
         setCachedData(cacheKey, null, 0);
 
         return NextResponse.json({ success: true, data: timeOffRequest });
@@ -212,8 +227,21 @@ export async function POST(request: NextRequest) {
           }
         });
 
+        // Broadcast real-time event
+        realtimeManager.broadcastToUser(userId, {
+          type: REALTIME_EVENTS.SCHEDULE_CHANGE_CREATED,
+          data: {
+            id: scheduleChange.id,
+            employeeName: scheduleChange.masseuse?.user?.name || scheduleChange.masseuse?.masseuseName,
+            dayOfWeek: getDayName(data.dayOfWeek),
+            changeType: data.changeType,
+            reason: data.reason
+          },
+          timestamp: Date.now()
+        });
+
         // Clear cache
-        const scheduleCacheKey = `employee_schedules_${session.user.id}`;
+        const scheduleCacheKey = `employee_schedules_${userId}`;
         setCachedData(scheduleCacheKey, null, 0);
 
         return NextResponse.json({ success: true, data: scheduleChange });
@@ -234,11 +262,28 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userId = session.user.id;
     const body = await request.json();
     const { type, id, action } = body;
 
     switch (type) {
       case 'timeOffRequest':
+        // Get the time off request before updating to get employee name
+        const timeOffRequest = await prisma.timeOffRequest.findUnique({
+          where: { id },
+          include: {
+            masseuse: {
+              include: {
+                user: { select: { name: true } }
+              }
+            }
+          }
+        });
+
+        if (!timeOffRequest) {
+          return NextResponse.json({ error: "Time off request not found" }, { status: 404 });
+        }
+
         const updatedTimeOff = await prisma.timeOffRequest.update({
           where: { id },
           data: {
@@ -248,8 +293,19 @@ export async function PUT(request: NextRequest) {
           }
         });
 
+        // Broadcast real-time event
+        realtimeManager.broadcastToUser(userId, {
+          type: action === 'approve' ? REALTIME_EVENTS.REQUEST_APPROVED : REALTIME_EVENTS.REQUEST_DENIED,
+          data: {
+            id: updatedTimeOff.id,
+            employeeName: timeOffRequest.masseuse?.user?.name || timeOffRequest.masseuse?.masseuseName,
+            status: action === 'approve' ? 'approved' : 'denied'
+          },
+          timestamp: Date.now()
+        });
+
         // Clear cache
-        const cacheKey = `employee_schedules_${session.user.id}`;
+        const cacheKey = `employee_schedules_${userId}`;
         setCachedData(cacheKey, null, 0);
 
         return NextResponse.json({ success: true, data: updatedTimeOff });
@@ -259,7 +315,11 @@ export async function PUT(request: NextRequest) {
         const scheduleChange = await prisma.scheduleChange.findUnique({
           where: { id },
           include: {
-            masseuse: true,
+            masseuse: {
+              include: {
+                user: { select: { name: true } }
+              }
+            },
             location: true
           }
         });
@@ -385,10 +445,32 @@ export async function PUT(request: NextRequest) {
               });
               break;
           }
+
+          // Broadcast schedule update event
+          realtimeManager.broadcastToUser(userId, {
+            type: REALTIME_EVENTS.EMPLOYEE_SCHEDULE_UPDATE,
+            data: {
+              employeeName: scheduleChange.masseuse?.user?.name || scheduleChange.masseuse?.masseuseName,
+              changeType: changeType.toLowerCase(),
+              dayOfWeek: getDayName(dayOfWeek)
+            },
+            timestamp: Date.now()
+          });
+        } else {
+          // Broadcast denial event
+          realtimeManager.broadcastToUser(userId, {
+            type: REALTIME_EVENTS.REQUEST_DENIED,
+            data: {
+              id: updatedSchedule.id,
+              employeeName: scheduleChange.masseuse?.user?.name || scheduleChange.masseuse?.masseuseName,
+              status: 'denied'
+            },
+            timestamp: Date.now()
+          });
         }
 
         // Clear cache
-        const scheduleCacheKey = `employee_schedules_${session.user.id}`;
+        const scheduleCacheKey = `employee_schedules_${userId}`;
         setCachedData(scheduleCacheKey, null, 0);
 
         return NextResponse.json({ success: true, data: updatedSchedule });

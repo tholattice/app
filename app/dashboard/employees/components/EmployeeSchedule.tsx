@@ -251,7 +251,7 @@ const EmployeeSchedule = memo(function EmployeeSchedule() {
       {/* Real-time Status Indicator */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center space-x-4 min-w-0">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white whitespace-nowrap">Employee Schedules</h2>
+          <h2 className="text-lg sm:text-xl text-gray-900 dark:text-white whitespace-nowrap">Employee Schedules</h2>
           {/* <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
             <span className={`text-xs ${isConnected ? 'text-green-600' : 'text-red-600'}`}>

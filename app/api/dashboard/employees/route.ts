@@ -169,7 +169,10 @@ export async function GET(request: NextRequest) {
         image: masseuse.user?.image,
         wechatUsername: masseuse.wechatUsername,
         status: isActive ? 'Active' : 'Inactive',
-        services: masseuse.servicesOffered.type,
+        services: [
+          ...masseuse.servicesOffered.type.map(t => t.charAt(0).toUpperCase() + t.slice(1) + ' Massage'),
+          ...masseuse.servicesOffered.addons.map(a => a.charAt(0).toUpperCase() + a.slice(1))
+        ],
         workingHours: masseuse.workingHours.map(wh => ({
           day: wh.dayOfWeek,
           startTime: wh.openTime,
@@ -263,24 +266,50 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "WeChat username is already taken" }, { status: 400 });
     }
 
+    // Separate services into types and addons
+    const massageTypes: ("body" | "foot" | "sauna")[] = [];
+    const massageAddons: ("cupping" | "backwalking" | "hotstones" | "aromatherapy" | "tigerbalm")[] = [];
+    
+    services.forEach((service: string) => {
+      // Map service names to MassageType enum values
+      const typeMap: { [key: string]: string } = {
+        "Body Massage": "body",
+        "Foot Massage": "foot",
+        "Sauna": "sauna"
+      };
+      
+      // Map service names to MassageAddons enum values
+      const addonMap: { [key: string]: string } = {
+        "Aromatherapy": "aromatherapy",
+        "Cupping": "cupping",
+        "Hot Stone": "hotstones",
+        "Back Walking": "backwalking",
+        "Tiger Balm": "tigerbalm"
+      };
+      
+      if (typeMap[service]) {
+        massageTypes.push(typeMap[service] as "body" | "foot" | "sauna");
+      } else if (addonMap[service]) {
+        massageAddons.push(addonMap[service] as "cupping" | "backwalking" | "hotstones" | "aromatherapy" | "tigerbalm");
+      } else {
+        // For unmapped services, add them as body massage type
+        // This handles: "Deep Tissue", "Swedish Massage", "Reflexology"
+        if (!massageTypes.includes("body")) {
+          massageTypes.push("body");
+        }
+      }
+    });
+    
+    // Ensure at least one massage type is selected
+    if (massageTypes.length === 0) {
+      massageTypes.push("body");
+    }
+
     // Create masseuse service record
     const masseuseService = await prisma.masseuseService.create({
       data: {
-        type: services.map((service: string) => {
-          // Map service names to MassageType enum values
-          const serviceMap: { [key: string]: string } = {
-            "Body Massage": "body",
-            "Foot Massage": "foot",
-            "Deep Tissue": "deeptissue",
-            "Swedish Massage": "swedish",
-            "Hot Stone": "hotstone",
-            "Aromatherapy": "aromatherapy",
-            "Cupping": "cupping",
-            "Reflexology": "reflexology"
-          };
-          return serviceMap[service] || "body";
-        }),
-        addons: [],
+        type: massageTypes,
+        addons: massageAddons,
         duration: [60, 90] // Default durations
       }
     });

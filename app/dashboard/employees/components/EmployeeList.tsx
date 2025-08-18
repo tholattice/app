@@ -55,37 +55,51 @@ export default function EmployeeList() {
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  // Real-time connection
-  const { isConnected, error: realtimeError } = useRealtimeEmployees();
+  // Real-time connection and employee updates
+  const { isConnected, error: realtimeError, lastEvent } = useRealtimeEmployees();
+
+  // Handle real-time employee updates
+  useEffect(() => {
+    if (lastEvent && (
+      lastEvent.type === 'employee_created' ||
+      lastEvent.type === 'employee_updated' ||
+      lastEvent.type === 'stats_updated'
+    )) {
+      console.log('Real-time event received:', lastEvent);
+      
+      // Refresh data immediately when we receive a real-time update
+      fetchEmployees();
+    }
+  }, [lastEvent]);
+
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/dashboard/employees');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch employees');
+      }
+      
+      const data = await response.json();
+      setEmployees(data.employees);
+      setStats(data.stats);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/dashboard/employees');
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch employees');
-        }
-        
-        const data = await response.json();
-        setEmployees(data.employees);
-        setStats(data.stats);
-        setLastUpdated(new Date());
-      } catch (error) {
-        console.error("Error fetching employees:", error);
-        setError(error instanceof Error ? error.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchEmployees();
 
-    // Set up polling as fallback for real-time updates
-    const pollInterval = setInterval(fetchEmployees, 30000); // Poll every 30 seconds
+    // Set up polling as fallback for real-time updates (less frequent since we have real-time)
+    const pollInterval = setInterval(fetchEmployees, 60000); // Poll every 60 seconds as backup
 
     return () => clearInterval(pollInterval);
   }, []);
@@ -164,7 +178,7 @@ export default function EmployeeList() {
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center space-x-4 min-w-0">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Employees</h2>
+          <h2 className="text-lg sm:text-xl text-gray-900 dark:text-white">Employees</h2>
           
           {/* Real-time status indicator */}
           <div className="flex items-center space-x-1">

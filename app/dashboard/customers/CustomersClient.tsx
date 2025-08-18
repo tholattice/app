@@ -33,36 +33,50 @@ export default function CustomersClient() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  // Real-time connection
-  const { isConnected, error: realtimeError } = useRealtimeCustomers();
+  // Real-time connection and customer updates
+  const { isConnected, error: realtimeError, lastEvent } = useRealtimeCustomers();
+
+  // Handle real-time customer updates
+  useEffect(() => {
+    if (lastEvent && (
+      lastEvent.type === 'customer_created' ||
+      lastEvent.type === 'customer_updated' ||
+      lastEvent.type === 'stats_updated'
+    )) {
+      console.log('Real-time event received:', lastEvent);
+      
+      // Refresh data immediately when we receive a real-time update
+      fetchCustomers();
+    }
+  }, [lastEvent]);
+
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/dashboard/customers');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch customers');
+      }
+      
+      const data = await response.json();
+      setCustomers(data.customers);
+      setStats(data.stats);
+      setLastUpdated(new Date());
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/dashboard/customers');
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch customers');
-        }
-        
-        const data = await response.json();
-        setCustomers(data.customers);
-        setStats(data.stats);
-        setLastUpdated(new Date());
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCustomers();
 
-    // Set up polling as fallback for real-time updates
-    const pollInterval = setInterval(fetchCustomers, 30000); // Poll every 30 seconds
+    // Set up polling as fallback for real-time updates (less frequent since we have real-time)
+    const pollInterval = setInterval(fetchCustomers, 60000); // Poll every 60 seconds as backup
 
     return () => clearInterval(pollInterval);
   }, []);
