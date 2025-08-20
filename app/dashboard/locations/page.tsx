@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface Location {
   id: string;
@@ -74,14 +75,20 @@ export default function LocationsPage() {
         });
         setShowForm(false);
         fetchLocations(); // Refresh the list
-        alert("Location created successfully!");
+        toast.success("Location created successfully!", {
+          description: `${formData.name} has been added to your locations.`
+        });
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}`);
+        toast.error("Failed to create location", {
+          description: error.error
+        });
       }
     } catch (error) {
       console.error("Error creating location:", error);
-      alert("Failed to create location");
+      toast.error("Failed to create location", {
+        description: "An unexpected error occurred. Please try again."
+      });
     } finally {
       setSubmitting(false);
     }

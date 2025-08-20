@@ -13,10 +13,13 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
     
-    // Get user's locations
+    // Get user's locations with optimized query
     const userLocations = await prisma.location.findMany({
       where: {
         ownerId: userId
+      },
+      select: {
+        id: true
       }
     });
 
@@ -26,7 +29,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ customers: [], stats: { total: 0, active: 0, newThisMonth: 0, churned: 0 } });
     }
 
-    // Get all clients for the user's locations
+    // Optimized query to get all data in one go
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+    // Get all clients with their appointments in a single optimized query
     const clients = await prisma.client.findMany({
       where: {
         clientLocations: {
@@ -46,7 +55,8 @@ export async function GET(request: NextRequest) {
           },
           orderBy: {
             appointmentDate: 'desc'
-          }
+          },
+          take: 10 // Limit to recent appointments for performance
         },
         user: {
           select: {
@@ -62,11 +72,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Calculate stats
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    
+    // Calculate stats using optimized queries
     const [totalCustomers, activeCustomers, newThisMonth, churnedCustomers] = await Promise.all([
       // Total customers
       prisma.client.count({
@@ -135,7 +141,7 @@ export async function GET(request: NextRequest) {
                 in: locationIds
               },
               appointmentDate: {
-                lt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+                lt: ninetyDaysAgo
               }
             }
           },
@@ -146,7 +152,7 @@ export async function GET(request: NextRequest) {
                   in: locationIds
                 },
                 appointmentDate: {
-                  gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+                  gte: ninetyDaysAgo
                 }
               }
             }
@@ -192,9 +198,10 @@ export async function GET(request: NextRequest) {
       stats
     });
 
-      } catch (error) {
-      return NextResponse.json({ error: "Failed to fetch customers" }, { status: 500 });
-    }
+  } catch (error) {
+    console.error("Error fetching customers:", error);
+    return NextResponse.json({ error: "Failed to fetch customers" }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -212,10 +219,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+    }
+
     // Get user's locations
     const userLocations = await prisma.location.findMany({
       where: {
         ownerId: userId
+      },
+      select: {
+        id: true
       }
     });
 
@@ -289,9 +305,18 @@ export async function POST(request: NextRequest) {
       customer: createdClient 
     });
 
-      } catch (error) {
-      return NextResponse.json({ error: "Failed to create customer" }, { status: 500 });
+  } catch (error) {
+    console.error("Error creating customer:", error);
+    
+    // Handle specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint')) {
+        return NextResponse.json({ error: "A customer with this email already exists" }, { status: 409 });
+      }
     }
+    
+    return NextResponse.json({ error: "Failed to create customer" }, { status: 500 });
+  }
 }
 
 export async function PUT(request: NextRequest) {
@@ -321,7 +346,8 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, customer: updatedCustomer });
 
-      } catch (error) {
-      return NextResponse.json({ error: "Failed to update customer" }, { status: 500 });
-    }
+  } catch (error) {
+    console.error("Error updating customer:", error);
+    return NextResponse.json({ error: "Failed to update customer" }, { status: 500 });
+  }
 }

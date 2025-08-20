@@ -12,6 +12,8 @@ interface Schedule {
   endTime: string;
   isAvailable: boolean;
   dayOfWeekNumber: number;
+  date?: string; // YYYY-MM-DD format for date-based schedules
+  scheduleType?: 'weekly' | 'date'; // Type of schedule
 }
 
 interface TimeOffRequest {
@@ -112,6 +114,8 @@ export function useEmployeeSchedules(): UseEmployeeSchedulesReturn {
 
   // Real-time updates
   useEffect(() => {
+    console.log('Employee schedules hook - lastEvent:', lastEvent, 'isConnected:', isConnected);
+    
     if (lastEvent && isConnected) {
       try {
         if (
@@ -119,9 +123,13 @@ export function useEmployeeSchedules(): UseEmployeeSchedulesReturn {
           lastEvent.type === REALTIME_EVENTS.TIME_OFF_REQUEST_CREATED ||
           lastEvent.type === REALTIME_EVENTS.SCHEDULE_CHANGE_CREATED ||
           lastEvent.type === REALTIME_EVENTS.REQUEST_APPROVED ||
-          lastEvent.type === REALTIME_EVENTS.REQUEST_DENIED
+          lastEvent.type === REALTIME_EVENTS.REQUEST_DENIED ||
+          lastEvent.type === REALTIME_EVENTS.EMPLOYEE_CREATED ||
+          lastEvent.type === REALTIME_EVENTS.EMPLOYEE_UPDATED ||
+          lastEvent.type === 'IMMEDIATE_SCHEDULE_REFRESH'
         ) {
           console.log('Real-time employee schedule event received:', lastEvent);
+          console.log('Triggering data refetch...');
           // Refetch data when we receive a real-time update
           fetchData();
         }

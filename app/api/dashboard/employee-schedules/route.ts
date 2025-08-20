@@ -4,6 +4,75 @@ import { prisma } from "@/lib/prisma";
 import { getCachedData, setCachedData, measurePerformance } from "@/lib/performance";
 import { realtimeManager, REALTIME_EVENTS } from "@/lib/realtime";
 
+interface ScheduleConflict {
+  dayName: string;
+  location: string;
+  startTime: string;
+  endTime: string;
+}
+
+// Helper function to check for schedule conflicts
+async function checkScheduleConflicts(
+  masseuseId: string, 
+  dayOfWeek: number,
+  newStartTime: Date,
+  newEndTime: Date,
+  excludeScheduleId?: string
+): Promise<ScheduleConflict[]> {
+  const conflicts: ScheduleConflict[] = [];
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  // Get existing weekly schedules for this employee on the same day
+  const existingWeeklySchedules = await prisma.workingHours.findMany({
+    where: {
+      masseuseId,
+      dayOfWeek,
+      id: excludeScheduleId ? { not: excludeScheduleId } : undefined
+    }
+  });
+
+  // Check for overlaps with existing weekly schedules
+  for (const schedule of existingWeeklySchedules) {
+    if (newStartTime < schedule.closeTime && schedule.openTime < newEndTime) {
+      conflicts.push({
+        dayName: dayNames[dayOfWeek],
+        location: 'Existing weekly schedule',
+        startTime: schedule.openTime.toTimeString().slice(0, 5),
+        endTime: schedule.closeTime.toTimeString().slice(0, 5)
+      });
+    }
+  }
+
+  // Get existing date-based schedules for this employee on the same day of week
+  // We need to check all date-based schedules that fall on the same day of week
+  const existingDateSchedules = await prisma.employeeSchedule.findMany({
+    where: {
+      masseuseId,
+      id: excludeScheduleId ? { not: excludeScheduleId } : undefined
+    }
+  });
+
+  // Filter schedules that fall on the same day of week
+  const sameDayDateSchedules = existingDateSchedules.filter(schedule => {
+    const scheduleDate = new Date(schedule.date);
+    return scheduleDate.getDay() === dayOfWeek;
+  });
+
+  // Check for overlaps with existing date-based schedules
+  for (const schedule of sameDayDateSchedules) {
+    if (newStartTime < schedule.endTime && schedule.startTime < newEndTime) {
+      conflicts.push({
+        dayName: dayNames[dayOfWeek],
+        location: `Existing date schedule (${schedule.date.toISOString().split('T')[0]})`,
+        startTime: schedule.startTime.toTimeString().slice(0, 5),
+        endTime: schedule.endTime.toTimeString().slice(0, 5)
+      });
+    }
+  }
+
+  return conflicts;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -12,7 +81,9 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = session.user.id;
-    const cacheKey = `employee_schedules_${userId}`;
+    const { searchParams } = new URL(request.url);
+    const masseuseId = searchParams.get('masseuseId');
+    const cacheKey = masseuseId ? `employee_schedules_${userId}_${masseuseId}` : `employee_schedules_${userId}`;
 
     // Check cache first
     const cachedData = getCachedData(cacheKey);
@@ -21,9 +92,10 @@ export async function GET(request: NextRequest) {
     }
 
     const schedules = await measurePerformance('Employee Schedules Fetch', async () => {
-      // Get user's locations
+      // Get user's locations with optimized query
       const userLocations = await prisma.location.findMany({
-        where: { ownerId: userId }
+        where: { ownerId: userId },
+        select: { id: true }
       });
 
       const locationIds = userLocations.map(loc => loc.id);
@@ -32,15 +104,42 @@ export async function GET(request: NextRequest) {
         return { schedules: [], timeOffRequests: [], scheduleChanges: [] };
       }
 
-      // Fetch all schedule data in parallel
-      const [workingHours, timeOffRequests, scheduleChanges] = await Promise.all([
-        // Working hours
+      // Fetch all schedule data in parallel with optimized queries
+      const [workingHours, employeeSchedules, timeOffRequests, scheduleChanges] = await Promise.all([
+        // Working hours - only fetch from masseuse locations to avoid duplicates
         prisma.workingHours.findMany({
           where: {
-            OR: [
-              { locationId: { in: locationIds } },
-              { masseuse: { LocationMasseuse: { some: { locationId: { in: locationIds } } } } }
-            ]
+            masseuse: { 
+              LocationMasseuse: { 
+                some: { 
+                  locationId: { in: locationIds } 
+                } 
+              } 
+            }
+          },
+          include: {
+            masseuse: {
+              include: {
+                user: { select: { name: true } },
+                LocationMasseuse: {
+                  include: {
+                    location: { select: { name: true } }
+                  }
+                }
+              }
+            }
+          },
+          orderBy: [
+            { dayOfWeek: 'asc' },
+            { openTime: 'asc' }
+          ]
+        }),
+
+        // Employee schedules (new date-based schedules)
+        prisma.employeeSchedule.findMany({
+          where: {
+            locationId: { in: locationIds },
+            ...(masseuseId && { masseuseId })
           },
           include: {
             masseuse: {
@@ -51,8 +150,8 @@ export async function GET(request: NextRequest) {
             location: { select: { name: true } }
           },
           orderBy: [
-            { dayOfWeek: 'asc' },
-            { openTime: 'asc' }
+            { date: 'asc' },
+            { startTime: 'asc' }
           ]
         }),
 
@@ -91,17 +190,43 @@ export async function GET(request: NextRequest) {
       ]);
 
       // Transform working hours to schedule format
-      const schedules = workingHours.map(wh => ({
-        id: wh.id,
-        employeeId: wh.masseuseId || '',
-        employeeName: wh.masseuse?.user?.name || wh.masseuse?.masseuseName || 'Unknown',
-        location: wh.location?.name || 'Unknown Location',
-        dayOfWeek: getDayName(wh.dayOfWeek),
-        startTime: wh.openTime.toTimeString().slice(0, 5),
-        endTime: wh.closeTime.toTimeString().slice(0, 5),
+      const workingHourSchedules = workingHours.flatMap(wh => {
+        const employeeName = wh.masseuse?.user?.name || wh.masseuse?.masseuseName || 'Unknown';
+        const locations = wh.masseuse?.LocationMasseuse || [];
+        
+        // Create a schedule entry for each location the employee works at
+        return locations.map(loc => ({
+          id: `${wh.id}_${loc.locationId}`, // Unique ID for each location
+          employeeId: wh.masseuseId || '',
+          employeeName,
+          location: loc.location?.name || 'Unknown Location',
+          dayOfWeek: getDayName(wh.dayOfWeek),
+          startTime: wh.openTime.toTimeString().slice(0, 5),
+          endTime: wh.closeTime.toTimeString().slice(0, 5),
+          isAvailable: true,
+          dayOfWeekNumber: wh.dayOfWeek,
+          scheduleType: 'weekly' as const
+        }));
+      });
+
+      // Transform employee schedules (date-based) to schedule format
+      const employeeScheduleSchedules = employeeSchedules.map(es => ({
+        id: es.id,
+        employeeId: es.masseuseId,
+        employeeName: es.masseuse?.user?.name || es.masseuse?.masseuseName || 'Unknown',
+        location: es.location?.name || 'Unknown Location',
+        locationId: es.locationId,
+        date: es.date.toISOString().split('T')[0], // YYYY-MM-DD format
+        dayOfWeek: getDayName(es.date.getDay()),
+        startTime: es.startTime.toTimeString().slice(0, 5),
+        endTime: es.endTime.toTimeString().slice(0, 5),
         isAvailable: true,
-        dayOfWeekNumber: wh.dayOfWeek
+        dayOfWeekNumber: es.date.getDay(),
+        scheduleType: 'date' as const
       }));
+
+      // Combine both types of schedules
+      const schedules = [...workingHourSchedules, ...employeeScheduleSchedules];
 
       // Transform time off requests
       const transformedTimeOffRequests = timeOffRequests.map(tor => ({
@@ -167,12 +292,47 @@ export async function POST(request: NextRequest) {
 
     switch (type) {
       case 'timeOffRequest':
+        // Validate required fields
+        if (!data.masseuseId || !data.startDate || !data.endDate) {
+          return NextResponse.json({ error: "Missing required fields for time off request" }, { status: 400 });
+        }
+
+        // Validate dates
+        const startDate = new Date(data.startDate);
+        const endDate = new Date(data.endDate);
+        
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
+        }
+
+        if (startDate > endDate) {
+          return NextResponse.json({ error: "Start date cannot be after end date" }, { status: 400 });
+        }
+
+        // Check if masseuse exists and belongs to user's locations
+        const masseuse = await prisma.masseuse.findFirst({
+          where: {
+            id: data.masseuseId,
+            LocationMasseuse: {
+              some: {
+                location: {
+                  ownerId: userId
+                }
+              }
+            }
+          }
+        });
+
+        if (!masseuse) {
+          return NextResponse.json({ error: "Employee not found or not authorized" }, { status: 404 });
+        }
+
         const timeOffRequest = await prisma.timeOffRequest.create({
           data: {
             masseuseId: data.masseuseId,
-            startDate: new Date(data.startDate),
-            endDate: new Date(data.endDate),
-            reason: data.reason,
+            startDate: startDate,
+            endDate: endDate,
+            reason: data.reason || '',
             status: 'PENDING'
           },
           include: {
@@ -204,6 +364,59 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, data: timeOffRequest });
 
       case 'scheduleChange':
+        // Validate required fields
+        if (!data.masseuseId || !data.locationId || data.dayOfWeek === undefined) {
+          return NextResponse.json({ error: "Missing required fields for schedule change" }, { status: 400 });
+        }
+
+        // Check if masseuse and location belong to user
+        const [masseuseForSchedule, location] = await Promise.all([
+          prisma.masseuse.findFirst({
+            where: {
+              id: data.masseuseId,
+              LocationMasseuse: {
+                some: {
+                  location: {
+                    ownerId: userId
+                  }
+                }
+              }
+            }
+          }),
+          prisma.location.findFirst({
+            where: {
+              id: data.locationId,
+              ownerId: userId
+            }
+          })
+        ]);
+
+        if (!masseuseForSchedule || !location) {
+          return NextResponse.json({ error: "Employee or location not found or not authorized" }, { status: 404 });
+        }
+
+        // Check for schedule conflicts if this is an ADD or MODIFY operation
+        if (data.changeType.toUpperCase() === 'ADD' || data.changeType.toUpperCase() === 'MODIFY') {
+          if (data.newStartTime && data.newEndTime) {
+            const newStartTime = new Date(`2024-01-01T${data.newStartTime}`);
+            const newEndTime = new Date(`2024-01-01T${data.newEndTime}`);
+            
+            const conflicts = await checkScheduleConflicts(
+              data.masseuseId, 
+              data.dayOfWeek, 
+              newStartTime, 
+              newEndTime
+            );
+            
+            if (conflicts.length > 0) {
+              return NextResponse.json({ 
+                error: "Schedule conflicts detected", 
+                conflicts: conflicts.map(c => `${c.dayName}: ${c.startTime} - ${c.endTime}`)
+              }, { status: 409 });
+            }
+          }
+        }
+
         const scheduleChange = await prisma.scheduleChange.create({
           data: {
             masseuseId: data.masseuseId,
@@ -214,7 +427,7 @@ export async function POST(request: NextRequest) {
             newStartTime: data.newStartTime ? new Date(`2024-01-01T${data.newStartTime}`) : null,
             newEndTime: data.newEndTime ? new Date(`2024-01-01T${data.newEndTime}`) : null,
             changeType: data.changeType.toUpperCase(),
-            reason: data.reason,
+            reason: data.reason || '',
             status: 'PENDING'
           },
           include: {
@@ -251,6 +464,17 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Error creating schedule request:", error);
+    
+    // Handle specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint')) {
+        return NextResponse.json({ error: "A similar request already exists" }, { status: 409 });
+      }
+      if (error.message.includes('Foreign key constraint')) {
+        return NextResponse.json({ error: "Invalid employee or location reference" }, { status: 400 });
+      }
+    }
+    
     return NextResponse.json({ error: "Failed to create schedule request" }, { status: 500 });
   }
 }
@@ -266,11 +490,30 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { type, id, action } = body;
 
+    if (!type || !id || !action) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    if (!['approve', 'deny'].includes(action)) {
+      return NextResponse.json({ error: "Invalid action. Must be 'approve' or 'deny'" }, { status: 400 });
+    }
+
     switch (type) {
       case 'timeOffRequest':
         // Get the time off request before updating to get employee name
-        const timeOffRequest = await prisma.timeOffRequest.findUnique({
-          where: { id },
+        const timeOffRequest = await prisma.timeOffRequest.findFirst({
+          where: { 
+            id,
+            masseuse: {
+              LocationMasseuse: {
+                some: {
+                  location: {
+                    ownerId: userId
+                  }
+                }
+              }
+            }
+          },
           include: {
             masseuse: {
               include: {
@@ -281,13 +524,13 @@ export async function PUT(request: NextRequest) {
         });
 
         if (!timeOffRequest) {
-          return NextResponse.json({ error: "Time off request not found" }, { status: 404 });
+          return NextResponse.json({ error: "Time off request not found or not authorized" }, { status: 404 });
         }
 
         const updatedTimeOff = await prisma.timeOffRequest.update({
           where: { id },
           data: {
-            status: action === 'approve' ? 'APPROVED' : action.toUpperCase(),
+            status: action === 'approve' ? 'APPROVED' : 'DENIED',
             approvedBy: session.user.id,
             approvedAt: new Date()
           }
@@ -312,8 +555,13 @@ export async function PUT(request: NextRequest) {
 
       case 'scheduleChange':
         // First, get the schedule change details
-        const scheduleChange = await prisma.scheduleChange.findUnique({
-          where: { id },
+        const scheduleChange = await prisma.scheduleChange.findFirst({
+          where: { 
+            id,
+            location: {
+              ownerId: userId
+            }
+          },
           include: {
             masseuse: {
               include: {
@@ -325,14 +573,14 @@ export async function PUT(request: NextRequest) {
         });
 
         if (!scheduleChange) {
-          return NextResponse.json({ error: "Schedule change not found" }, { status: 404 });
+          return NextResponse.json({ error: "Schedule change not found or not authorized" }, { status: 404 });
         }
 
         // Update the schedule change status
         const updatedSchedule = await prisma.scheduleChange.update({
           where: { id },
           data: {
-            status: action === 'approve' ? 'APPROVED' : action.toUpperCase(),
+            status: action === 'approve' ? 'APPROVED' : 'DENIED',
             approvedBy: session.user.id,
             approvedAt: new Date()
           }
@@ -341,8 +589,6 @@ export async function PUT(request: NextRequest) {
         // If approved, create or update the actual working hours
         if (action === 'approve') {
           const { changeType, dayOfWeek, newStartTime, newEndTime, masseuseId, locationId } = scheduleChange;
-
-          // Process schedule change data
 
           // Helper function to create valid time strings
           const createTimeString = (timeValue: any) => {
@@ -370,8 +616,6 @@ export async function PUT(request: NextRequest) {
 
           const startTimeString = createTimeString(newStartTime);
           const endTimeString = createTimeString(newEndTime);
-
-          // Time strings processed successfully
 
           // Handle different change types
           switch (changeType) {
@@ -480,6 +724,14 @@ export async function PUT(request: NextRequest) {
     }
   } catch (error) {
     console.error("Error updating schedule request:", error);
+    
+    // Handle specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint')) {
+        return NextResponse.json({ error: "A similar schedule already exists" }, { status: 409 });
+      }
+    }
+    
     return NextResponse.json({ error: "Failed to update schedule request" }, { status: 500 });
   }
 }

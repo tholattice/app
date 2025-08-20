@@ -2,6 +2,75 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { realtimeManager, REALTIME_EVENTS } from "@/lib/realtime";
+import { setCachedData } from "@/lib/performance";
+
+interface ScheduleConflict {
+  dayName: string;
+  location: string;
+  startTime: string;
+  endTime: string;
+}
+
+// Helper function to check for schedule conflicts
+async function checkScheduleConflicts(
+  masseuseId: string, 
+  scheduleData: Array<{
+    masseuseId: string;
+    date: Date;
+    startTime: Date;
+    endTime: Date;
+    locationId: string;
+  }>, 
+  selectedLocations: string[]
+): Promise<ScheduleConflict[]> {
+  const conflicts: ScheduleConflict[] = [];
+  
+  // Group schedules by date
+  const dateGroups = scheduleData.reduce((acc, schedule) => {
+    const dateKey = schedule.date.toISOString().split('T')[0];
+    if (!acc[dateKey]) {
+      acc[dateKey] = [];
+    }
+    acc[dateKey].push(schedule);
+    return acc;
+  }, {} as Record<string, typeof scheduleData>);
+  
+  // Check for conflicts on each date and location
+  for (const [dateKey, schedules] of Object.entries(dateGroups)) {
+    // Group schedules by location for this date
+    const locationGroups = schedules.reduce((acc, schedule) => {
+      if (!acc[schedule.locationId]) {
+        acc[schedule.locationId] = [];
+      }
+      acc[schedule.locationId].push(schedule);
+      return acc;
+    }, {} as Record<string, typeof schedules>);
+    
+    // Check for conflicts within each location
+    for (const [locationId, locationSchedules] of Object.entries(locationGroups)) {
+      if (locationSchedules.length > 1) {
+        for (let i = 0; i < locationSchedules.length; i++) {
+          for (let j = i + 1; j < locationSchedules.length; j++) {
+            const schedule1 = locationSchedules[i];
+            const schedule2 = locationSchedules[j];
+            
+            // Check if schedules overlap within the same location
+            if (schedule1.startTime < schedule2.endTime && schedule2.startTime < schedule1.endTime) {
+              conflicts.push({
+                dayName: new Date(dateKey).toLocaleDateString(),
+                location: 'Same location',
+                startTime: schedule1.startTime.toTimeString().slice(0, 5),
+                endTime: schedule1.endTime.toTimeString().slice(0, 5)
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return conflicts;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,10 +82,13 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
     
-    // Get user's locations
+    // Get user's locations with optimized query
     const userLocations = await prisma.location.findMany({
       where: {
         ownerId: userId
+      },
+      select: {
+        id: true
       }
     });
 
@@ -26,7 +98,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ employees: [], stats: { total: 0, active: 0, inactive: 0 } });
     }
 
-    // Get all masseuses for the user's locations
+    // Optimized query to get all data in one go
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    // Get all masseuses with optimized includes
     const masseuses = await prisma.masseuse.findMany({
       where: {
         LocationMasseuse: {
@@ -38,10 +115,21 @@ export async function GET(request: NextRequest) {
         }
       },
       include: {
-        servicesOffered: true,
+        servicesOffered: {
+          select: {
+            type: true,
+            addons: true,
+            serviceNames: true
+          }
+        },
         workingHours: {
           orderBy: {
             dayOfWeek: 'asc'
+          },
+          select: {
+            dayOfWeek: true,
+            openTime: true,
+            closeTime: true
           }
         },
         appointments: {
@@ -53,7 +141,11 @@ export async function GET(request: NextRequest) {
           orderBy: {
             appointmentDate: 'desc'
           },
-          take: 5
+          take: 5,
+          select: {
+            appointmentDate: true,
+            duration: true
+          }
         },
         user: {
           select: {
@@ -68,10 +160,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Calculate stats
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+    // Calculate stats using optimized queries
     const [totalEmployees, activeEmployees, inactiveEmployees, totalAppointments, totalRevenue] = await Promise.all([
       // Total employees
       prisma.masseuse.count({
@@ -101,7 +190,7 @@ export async function GET(request: NextRequest) {
                 in: locationIds
               },
               appointmentDate: {
-                gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                gte: thirtyDaysAgo
               }
             }
           }
@@ -123,7 +212,7 @@ export async function GET(request: NextRequest) {
                 in: locationIds
               },
               appointmentDate: {
-                gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                gte: thirtyDaysAgo
               }
             }
           }
@@ -153,14 +242,12 @@ export async function GET(request: NextRequest) {
     // Transform employees data
     const transformedEmployees = masseuses.map(masseuse => {
       const lastAppointment = masseuse.appointments[0];
-      const isActive = lastAppointment && lastAppointment.appointmentDate > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const isActive = lastAppointment && lastAppointment.appointmentDate > thirtyDaysAgo;
       
       // Calculate this month's revenue
       const thisMonthRevenue = masseuse.appointments
         .filter(appt => appt.appointmentDate >= startOfMonth)
         .reduce((sum, appt) => sum + (appt.duration * 80), 0);
-      
-      // Working hours data processing
       
       return {
         id: masseuse.id,
@@ -169,10 +256,7 @@ export async function GET(request: NextRequest) {
         image: masseuse.user?.image,
         wechatUsername: masseuse.wechatUsername,
         status: isActive ? 'Active' : 'Inactive',
-        services: [
-          ...masseuse.servicesOffered.type.map(t => t.charAt(0).toUpperCase() + t.slice(1) + ' Massage'),
-          ...masseuse.servicesOffered.addons.map(a => a.charAt(0).toUpperCase() + a.slice(1))
-        ],
+        services: masseuse.servicesOffered.serviceNames,
         workingHours: masseuse.workingHours.map(wh => ({
           day: wh.dayOfWeek,
           startTime: wh.openTime,
@@ -219,7 +303,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id;
-    const { name, email, wechatUsername, phone, status, services, workingHours } = await request.json();
+    const { name, email, wechatUsername, phone, status, services, scheduleDates, selectedLocations } = await request.json();
 
     // Validate required fields
     if (!name || !email || !wechatUsername) {
@@ -230,15 +314,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "At least one service must be selected" }, { status: 400 });
     }
 
-    // Get user's locations
+    if (!selectedLocations || selectedLocations.length === 0) {
+      return NextResponse.json({ error: "At least one location must be selected" }, { status: 400 });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+    }
+
+    // Get user's locations and validate selected locations
     const userLocations = await prisma.location.findMany({
       where: {
-        ownerId: userId
+        ownerId: userId,
+        id: {
+          in: selectedLocations
+        }
+      },
+      select: {
+        id: true
       }
     });
 
     if (userLocations.length === 0) {
-      return NextResponse.json({ error: "No locations found for user" }, { status: 400 });
+      return NextResponse.json({ error: "No valid locations found for user" }, { status: 400 });
     }
 
     // Check if user with this email already exists
@@ -269,8 +369,12 @@ export async function POST(request: NextRequest) {
     // Separate services into types and addons
     const massageTypes: ("body" | "foot" | "sauna")[] = [];
     const massageAddons: ("cupping" | "backwalking" | "hotstones" | "aromatherapy" | "tigerbalm")[] = [];
+    const serviceNames: string[] = []; // Store original service names for display
     
     services.forEach((service: string) => {
+      // Add original service name to display list
+      serviceNames.push(service);
+      
       // Map service names to MassageType enum values
       const typeMap: { [key: string]: string } = {
         "Body Massage": "body",
@@ -310,6 +414,7 @@ export async function POST(request: NextRequest) {
       data: {
         type: massageTypes,
         addons: massageAddons,
+        serviceNames: serviceNames, // Store original service names
         duration: [60, 90] // Default durations
       }
     });
@@ -324,7 +429,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Link masseuse to all user locations
+    // Link masseuse to selected locations
     const locationConnections = userLocations.map(location => ({
       locationId: location.id,
       masseuseId: newMasseuse.id
@@ -334,34 +439,37 @@ export async function POST(request: NextRequest) {
       data: locationConnections
     });
 
-    // Create working hours if provided
-    if (workingHours) {
-      const workingHoursData = Object.entries(workingHours)
-        .filter(([_, hours]) => (hours as any).enabled)
-        .map(([day, hours]) => {
-          const dayMap: { [key: string]: number } = {
-            monday: 1,
-            tuesday: 2,
-            wednesday: 3,
-            thursday: 4,
-            friday: 5,
-            saturday: 6,
-            sunday: 0
-          };
-          
-          const hoursData = hours as { start: string; end: string };
-          
-          return {
-            masseuseId: newMasseuse.id,
-            dayOfWeek: dayMap[day],
-            openTime: new Date(`2000-01-01T${hoursData.start}`),
-            closeTime: new Date(`2000-01-01T${hoursData.end}`)
-          };
-        });
+    // Create schedule dates if provided
+    if (scheduleDates && scheduleDates.length > 0) {
+      // Deduplicate schedules to prevent unique constraint violations
+      const uniqueSchedules = scheduleDates.reduce((acc: any[], schedule: any) => {
+        const key = `${schedule.date}_${schedule.startTime}_${schedule.endTime}_${schedule.locationId}`;
+        if (!acc.find(s => `${s.date}_${s.startTime}_${s.endTime}_${s.locationId}` === key)) {
+          acc.push(schedule);
+        }
+        return acc;
+      }, []);
 
-      if (workingHoursData.length > 0) {
-        await prisma.workingHours.createMany({
-          data: workingHoursData
+      const scheduleData = uniqueSchedules.map((schedule: any) => ({
+        masseuseId: newMasseuse.id,
+        date: new Date(schedule.date),
+        startTime: new Date(`2000-01-01T${schedule.startTime}`),
+        endTime: new Date(`2000-01-01T${schedule.endTime}`),
+        locationId: schedule.locationId
+      }));
+
+      // Check for schedule conflicts before creating
+      const conflicts = await checkScheduleConflicts(newMasseuse.id, scheduleData, selectedLocations);
+      if (conflicts.length > 0) {
+        return NextResponse.json({ 
+          error: "Schedule conflicts detected", 
+          conflicts: conflicts.map(c => `${c.dayName} at ${c.location}: ${c.startTime} - ${c.endTime}`)
+        }, { status: 409 });
+      }
+
+      if (scheduleData.length > 0) {
+        await prisma.employeeSchedule.createMany({
+          data: scheduleData
         });
       }
     }
@@ -395,13 +503,58 @@ export async function POST(request: NextRequest) {
       timestamp: Date.now()
     });
 
+    // If schedules were created, also broadcast a schedule update event
+    const hasSchedules = scheduleDates && scheduleDates.length > 0;
+    
+    if (hasSchedules) {
+      realtimeManager.broadcastToUser(userId, {
+        type: REALTIME_EVENTS.EMPLOYEE_SCHEDULE_UPDATE,
+        data: {
+          employeeName: name,
+          changeType: 'created',
+          message: 'New employee schedule created'
+        },
+        timestamp: Date.now()
+      });
+    }
+
+    // Clear employee schedules cache to ensure fresh data
+    const scheduleCacheKey = `employee_schedules_${userId}`;
+    setCachedData(scheduleCacheKey, null, 0);
+
+    // Also broadcast a more specific event to force immediate refresh
+    if (hasSchedules) {
+      realtimeManager.broadcastToUser(userId, {
+        type: 'IMMEDIATE_SCHEDULE_REFRESH',
+        data: {
+          employeeName: name,
+          message: 'New employee schedule created - immediate refresh required'
+        },
+        timestamp: Date.now()
+      });
+    }
+
     return NextResponse.json({ 
       success: true, 
-      employee: createdMasseuse 
+      employee: createdMasseuse,
+      hasSchedules
     });
 
   } catch (error) {
     console.error("Error creating employee:", error);
+    
+    // Handle specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint')) {
+        if (error.message.includes('wechatUsername')) {
+          return NextResponse.json({ error: "WeChat username is already taken" }, { status: 409 });
+        }
+        if (error.message.includes('email')) {
+          return NextResponse.json({ error: "A user with this email already exists" }, { status: 409 });
+        }
+      }
+    }
+    
     return NextResponse.json({ error: "Failed to create employee" }, { status: 500 });
   }
 }

@@ -64,6 +64,7 @@ model Masseuse {
   user              User               @relation(fields: [masseuseName, masseuseId], references: [name, id])
   servicesOffered   MasseuseService    @relation(fields: [masseuseServiceId], references: [id])
   workingHours      WorkingHours[]
+  employeeSchedules EmployeeSchedule[]
   timeOffRequests   TimeOffRequest[]
   scheduleChanges   ScheduleChange[]
 
@@ -101,10 +102,10 @@ model MasseuseService {
 }
 
 model Massage {
-  id          String         @id @default(cuid())
-  type        MassageType
+  id        String        @id @default(cuid())
+  type      MassageType
   appointment Appointment[]
-  addons      MassageAddon[]
+  addons    MassageAddon[]
 
   @@unique([id, type])
 }
@@ -116,24 +117,6 @@ model MassageAddon {
   massage   Massage       @relation(fields: [massageId], references: [id])
 
   @@unique([type, massageId])
-}
-
-model Appointment {
-  id                      String   @id @default(cuid())
-  appointmentDate         DateTime
-  duration                Int
-  masseuseAppointmentName String
-  masseuseAppointmentId   String
-  clientAppointmentName   String
-  clientAppointmentId     String
-  locationId              String
-  massageId               String
-  userId                  String?
-  client                  Client   @relation(fields: [clientAppointmentName, clientAppointmentId], references: [clientName, clientId])
-  location                Location @relation(fields: [locationId], references: [id])
-  massage                 Massage  @relation(fields: [massageId], references: [id])
-  masseuse                Masseuse @relation(fields: [masseuseAppointmentName, masseuseAppointmentId], references: [masseuseName, masseuseId])
-  User                    User?    @relation(fields: [userId], references: [id])
 }
 
 model LocationMasseuse {
@@ -158,14 +141,15 @@ model Location {
   longitude    Float?
   phoneNumber  String
   ownerId      String
-  Appointment  Appointment[]
-  holidayHours HolidayHours[]
-  user         User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  clients      LocationClient[]
-  masseuses    LocationMasseuse[]
-  Site         Site[]
+  appointments Appointment[]
+  clientLocations LocationClient[]
+  LocationMasseuse LocationMasseuse[]
   workingHours WorkingHours[]
+  employeeSchedules EmployeeSchedule[]
+  holidayHours HolidayHours[]
   scheduleChanges ScheduleChange[]
+  sites        Site[]
+  user         User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model WorkingHours {
@@ -180,6 +164,42 @@ model WorkingHours {
 
   @@unique([locationId, dayOfWeek])
   @@unique([masseuseId, dayOfWeek])
+}
+
+model EmployeeSchedule {
+  id         String    @id @default(cuid())
+  date       DateTime
+  startTime  DateTime
+  endTime    DateTime
+  locationId String
+  masseuseId String
+  location   Location  @relation(fields: [locationId], references: [id])
+  masseuse   Masseuse  @relation(fields: [masseuseId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([masseuseId, date, locationId])
+  @@index([masseuseId])
+  @@index([locationId])
+  @@index([date])
+}
+
+model Appointment {
+  id                      String   @id @default(cuid())
+  appointmentDate         DateTime
+  duration                Int
+  masseuseAppointmentName String
+  masseuseAppointmentId   String
+  clientAppointmentName   String
+  clientAppointmentId     String
+  locationId              String
+  massageId               String
+  userId                  String?
+  masseuse                Masseuse @relation(fields: [masseuseAppointmentName, masseuseAppointmentId], references: [masseuseName, masseuseId])
+  client                  Client   @relation(fields: [clientAppointmentName, clientAppointmentId], references: [clientName, clientId])
+  location                Location @relation(fields: [locationId], references: [id])
+  massage                 Massage  @relation(fields: [massageId], references: [id])
+  user                    User?    @relation(fields: [userId], references: [id])
 }
 
 model TimeOffRequest {
@@ -244,6 +264,26 @@ enum ScheduleChangeStatus {
   CANCELLED
 }
 
+enum Role {
+  owner
+  admin
+  masseuse
+  client
+}
+
+enum MassageType {
+  body
+  foot
+  sauna
+}
+
+enum MassageAddons {
+  cupping
+  backwalking
+  hotstones
+  aromatherapy
+  tigerbalm
+}
 
 model HolidayHours {
   id          String    @id @default(cuid())
@@ -346,25 +386,6 @@ model Subscription {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
 
-enum Role {
-  owner
-  admin
-  masseuse
-  client
-}
-
-enum MassageType {
-  body
-  foot
-  sauna
-}
-
-enum MassageAddons {
-  cupping
-  backwalking
-  hotstones
-  aromatherapy
-  tigerbalm
+  @@index([userId])
 }

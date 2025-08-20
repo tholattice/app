@@ -211,7 +211,8 @@ export function useRealtimeEmployees() {
   useEffect(() => {
     if (lastEvent && (
       lastEvent.type === REALTIME_EVENTS.EMPLOYEE_CREATED ||
-      lastEvent.type === REALTIME_EVENTS.EMPLOYEE_UPDATED
+      lastEvent.type === REALTIME_EVENTS.EMPLOYEE_UPDATED ||
+      lastEvent.type === REALTIME_EVENTS.EMPLOYEE_DELETED
     )) {
       setEmployees(prev => {
         switch (lastEvent.type) {
@@ -221,6 +222,8 @@ export function useRealtimeEmployees() {
             return prev.map(employee => 
               employee.id === lastEvent.data.id ? { ...employee, ...lastEvent.data } : employee
             );
+          case REALTIME_EVENTS.EMPLOYEE_DELETED:
+            return prev.filter(employee => employee.id !== lastEvent.data.employeeId);
           default:
             return prev;
         }

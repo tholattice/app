@@ -58,6 +58,8 @@ export default function ScheduleChangeModal({
     reason: ""
   });
 
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+
   // Update form data when editingSchedule changes
   useEffect(() => {
     if (editingSchedule) {
@@ -96,27 +98,70 @@ export default function ScheduleChangeModal({
         { value: "REMOVE", label: "Remove Schedule" }
       ];
 
+  // Function to check for schedule conflicts
+  const checkForConflicts = () => {
+    if (formData.changeType === "ADD" || formData.changeType === "MODIFY") {
+      if (formData.newStartTime && formData.newEndTime) {
+        const startTime = new Date(`2000-01-01T${formData.newStartTime}`);
+        const endTime = new Date(`2000-01-01T${formData.newEndTime}`);
+        
+        // Basic validation - check if start time is before end time
+        if (startTime >= endTime) {
+          setConflictWarning("Start time must be before end time");
+          return true;
+        }
+        
+        // Check if the time range is reasonable (not more than 24 hours)
+        const hoursDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+        if (hoursDiff > 24) {
+          setConflictWarning("Schedule cannot exceed 24 hours");
+          return true;
+        }
+        
+        setConflictWarning(null);
+        return false;
+      }
+    }
+    setConflictWarning(null);
+    return false;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for conflicts before submitting
+    if (checkForConflicts()) {
+      return;
+    }
     if (!formData.employeeId || !formData.locationId || !formData.newStartTime || !formData.newEndTime) {
       return;
     }
 
-    const success = await onSubmit(formData);
-    if (success) {
-      setFormData({
-        employeeId: "",
-        locationId: "",
-        dayOfWeek: 1,
-        oldStartTime: "",
-        oldEndTime: "",
-        newStartTime: "",
-        newEndTime: "",
-        changeType: "MODIFY",
-        reason: ""
-      });
-      onClose();
+    try {
+      const success = await onSubmit(formData);
+      if (success) {
+        setFormData({
+          employeeId: "",
+          locationId: "",
+          dayOfWeek: 1,
+          oldStartTime: "",
+          oldEndTime: "",
+          newStartTime: "",
+          newEndTime: "",
+          changeType: "MODIFY",
+          reason: ""
+        });
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error submitting schedule change:', error);
     }
+  };
+
+  const handleTimeChange = (field: 'newStartTime' | 'newEndTime', value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Check for conflicts after a short delay
+    setTimeout(() => checkForConflicts(), 300);
   };
 
   if (!isOpen) return null;
@@ -137,6 +182,13 @@ export default function ScheduleChangeModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {conflictWarning && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+              <p className="text-sm text-red-800 dark:text-red-200">
+                ⚠️ {conflictWarning}
+              </p>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Employee
@@ -282,7 +334,7 @@ export default function ScheduleChangeModal({
                 <input
                   type="time"
                   value={formData.newStartTime}
-                  onChange={(e) => setFormData(prev => ({ ...prev, newStartTime: e.target.value }))}
+                  onChange={(e) => handleTimeChange('newStartTime', e.target.value)}
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   required
                 />
@@ -297,7 +349,7 @@ export default function ScheduleChangeModal({
                 <input
                   type="time"
                   value={formData.newEndTime}
-                  onChange={(e) => setFormData(prev => ({ ...prev, newEndTime: e.target.value }))}
+                  onChange={(e) => handleTimeChange('newEndTime', e.target.value)}
                   min={formData.newStartTime}
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   required

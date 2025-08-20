@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { 
   UserIcon, 
   PhoneIcon, 
@@ -18,6 +18,10 @@ import {
 } from "@heroicons/react/24/outline";
 import { useRealtimeEmployees } from "@/hooks/use-realtime";
 import Image from "next/image";
+import { toast } from "sonner";
+import { REALTIME_EVENTS } from "@/lib/realtime";
+import DeleteEmployeeModal from "./DeleteEmployeeModal";
+import EditEmployeeModal from "./EditEmployeeModal";
 
 interface Employee {
   id: string;
@@ -47,34 +51,34 @@ interface EmployeeStats {
 
 export default function EmployeeList() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [stats, setStats] = useState<EmployeeStats>({ total: 0, active: 0, totalAppointments: 0, totalRevenue: 0 });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; employee: Employee | null }>({
+    isOpen: false,
+    employee: null
+  });
+  const [editModal, setEditModal] = useState<{ isOpen: boolean; employee: Employee | null }>({
+    isOpen: false,
+    employee: null
+  });
 
   // Real-time connection and employee updates
   const { isConnected, error: realtimeError, lastEvent } = useRealtimeEmployees();
 
-  // Handle real-time employee updates
-  useEffect(() => {
-    if (lastEvent && (
-      lastEvent.type === 'employee_created' ||
-      lastEvent.type === 'employee_updated' ||
-      lastEvent.type === 'stats_updated'
-    )) {
-      console.log('Real-time event received:', lastEvent);
-      
-      // Refresh data immediately when we receive a real-time update
-      fetchEmployees();
-    }
-  }, [lastEvent]);
-
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       
       const response = await fetch('/api/dashboard/employees');
@@ -91,9 +95,27 @@ export default function EmployeeList() {
       console.error("Error fetching employees:", error);
       setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
-      setLoading(false);
+      if (isRefresh) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
+
+  // Handle real-time employee updates
+  useEffect(() => {
+    if (lastEvent && (
+      lastEvent.type === REALTIME_EVENTS.EMPLOYEE_CREATED ||
+      lastEvent.type === REALTIME_EVENTS.EMPLOYEE_UPDATED ||
+      lastEvent.type === REALTIME_EVENTS.EMPLOYEE_DELETED ||
+      lastEvent.type === REALTIME_EVENTS.STATS_UPDATED ||
+      lastEvent.type === REALTIME_EVENTS.EMPLOYEE_SCHEDULE_UPDATE
+    )) {
+      // Refresh data immediately when we receive a real-time update
+      fetchEmployees();
+    }
+  }, [lastEvent, isConnected, fetchEmployees]);
 
   useEffect(() => {
     fetchEmployees();
@@ -102,7 +124,31 @@ export default function EmployeeList() {
     const pollInterval = setInterval(fetchEmployees, 60000); // Poll every 60 seconds as backup
 
     return () => clearInterval(pollInterval);
-  }, []);
+  }, [fetchEmployees]);
+
+  // Force refresh when component mounts (useful when returning from employee creation)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchEmployees();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    
+    // Also refresh on mount
+    handleFocus();
+
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchEmployees]);
+
+  // Handle refresh parameter from URL
+  useEffect(() => {
+    const refreshParam = searchParams.get('refresh');
+    if (refreshParam === 'true') {
+      fetchEmployees();
+      // Remove the refresh parameter from URL
+      router.replace('/dashboard/employees');
+    }
+  }, [searchParams, fetchEmployees, router]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -174,19 +220,66 @@ export default function EmployeeList() {
     );
   }
 
+  const handleDeleteEmployee = (employee: Employee) => {
+    setDeleteModal({ isOpen: true, employee });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ isOpen: false, employee: null });
+  };
+
+  const handleDeleteSuccess = () => {
+    fetchEmployees();
+  };
+
+  const handleEditEmployee = (employee: Employee) => {
+    setEditModal({ isOpen: true, employee });
+  };
+
+  const closeEditModal = () => {
+    setEditModal({ isOpen: false, employee: null });
+  };
+
+  const handleEditSuccess = () => {
+    // Immediate refresh to show updated data
+    fetchEmployees(true);
+    
+    // Also trigger a refresh after a short delay to ensure all data is updated
+    setTimeout(() => {
+      fetchEmployees(true);
+    }, 500);
+    
+    // One more refresh after 1 second to ensure all updates are reflected
+    setTimeout(() => {
+      fetchEmployees(true);
+    }, 1000);
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center space-x-4 min-w-0">
-          <h2 className="text-lg sm:text-xl text-gray-900 dark:text-white">Employees</h2>
-          
-          {/* Real-time status indicator */}
-          <div className="flex items-center space-x-1">
-            <WifiIcon className={`w-4 h-4 ${isConnected ? 'text-green-500' : 'text-red-500'}`} />
+          <h2 className="text-lg sm:text-xl text-gray-900 dark:text-white whitespace-nowrap">Employees</h2>
+          <div className="flex items-center space-x-2">
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
             <span className={`text-xs ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
               {isConnected ? 'Live' : 'Offline'}
             </span>
           </div>
+          <button
+            onClick={() => fetchEmployees(true)}
+            disabled={refreshing}
+            className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+          >
+            {refreshing ? (
+              <>
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1"></div>
+                Refreshing...
+              </>
+            ) : (
+              'Refresh'
+            )}
+          </button>
         </div>
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
@@ -345,18 +438,14 @@ export default function EmployeeList() {
                   <EyeIcon className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => alert(`Edit employee: ${employee.name}`)}
+                  onClick={() => handleEditEmployee(employee)}
                   className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20"
                   title="Edit Employee"
                 >
                   <PencilIcon className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => {
-                    if (confirm(`Are you sure you want to delete ${employee.name}?`)) {
-                      alert(`Employee ${employee.name} deleted`);
-                    }
-                  }}
+                  onClick={() => handleDeleteEmployee(employee)}
                   className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20"
                   title="Delete Employee"
                 >
@@ -467,6 +556,27 @@ export default function EmployeeList() {
             </span>
           </div>
         </div>
+      )}
+
+      {/* Delete Employee Modal */}
+      {deleteModal.employee && (
+        <DeleteEmployeeModal
+          isOpen={deleteModal.isOpen}
+          onClose={closeDeleteModal}
+          onDelete={handleDeleteSuccess}
+          employeeName={deleteModal.employee.name}
+          employeeId={deleteModal.employee.id}
+        />
+      )}
+
+      {/* Edit Employee Modal */}
+      {editModal.employee && (
+        <EditEmployeeModal
+          isOpen={editModal.isOpen}
+          onClose={closeEditModal}
+          onSave={handleEditSuccess}
+          employee={editModal.employee}
+        />
       )}
     </div>
   );

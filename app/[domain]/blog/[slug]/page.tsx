@@ -87,8 +87,7 @@ export default async function TenantPostsPage({
   const slug = decodeURIComponent(slugParam);
   const data = await getPostData(domain, slug);
 
-  console.log("here is the domain and slug", domain, slug);
-  console.log("this is the data output", data);
+  // Debug logging removed for production
 
   if (!data) {
     notFound();

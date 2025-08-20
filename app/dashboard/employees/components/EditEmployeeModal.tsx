@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import ScheduleCalendar from "../components/ScheduleCalendar";
-import CreateLocationModal from "../components/CreateLocationModal";
+import { X, Save, Calendar, MapPin } from "lucide-react";
+import ScheduleCalendar from "./ScheduleCalendar";
+import CreateLocationModal from "./CreateLocationModal";
 
 interface Location {
   id: string;
@@ -20,8 +20,39 @@ interface ScheduleDate {
   locationName: string;
 }
 
-export default function NewEmployeeClient() {
-  const router = useRouter();
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  image?: string;
+  status: string;
+  totalRevenue: number;
+  thisMonthRevenue: number;
+  lastAppointment?: Date;
+  appointmentCount: number;
+  services: string[];
+  workingHours: {
+    day: number;
+    startTime: Date;
+    endTime: Date;
+  }[];
+  wechatUsername: string;
+  phone?: string;
+}
+
+interface EditEmployeeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  employee: Employee | null;
+}
+
+export default function EditEmployeeModal({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  employee 
+}: EditEmployeeModalProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -34,7 +65,7 @@ export default function NewEmployeeClient() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
   const [loadingLocations, setLoadingLocations] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -51,6 +82,59 @@ export default function NewEmployeeClient() {
     "Reflexology"
   ];
 
+  // Initialize form data when employee changes
+  useEffect(() => {
+    if (employee) {
+      setFormData({
+        name: employee.name,
+        email: employee.email,
+        wechatUsername: employee.wechatUsername,
+        phone: employee.phone || "",
+        status: employee.status,
+        services: employee.services,
+        selectedLocations: [],
+        scheduleDates: []
+      });
+      
+      // Reset saved state
+      setIsSaved(false);
+      
+      // Fetch existing schedules for this employee
+      fetchEmployeeSchedules(employee.id);
+    }
+  }, [employee]);
+
+  // Fetch existing schedules for the employee
+  const fetchEmployeeSchedules = async (employeeId: string) => {
+    try {
+      const response = await fetch(`/api/dashboard/employee-schedules?masseuseId=${employeeId}`);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Convert the schedules to the format expected by the form
+        const convertedSchedules: ScheduleDate[] = data.schedules
+          .filter((schedule: any) => schedule.scheduleType === 'date')
+          .map((schedule: any) => ({
+            id: schedule.id,
+            date: schedule.date, // Already in YYYY-MM-DD format
+            startTime: schedule.startTime, // Already in HH:MM format
+            endTime: schedule.endTime, // Already in HH:MM format
+            locationId: schedule.locationId,
+            locationName: schedule.location
+          }));
+        
+        setFormData(prev => ({
+          ...prev,
+          scheduleDates: convertedSchedules
+        }));
+      } else {
+        console.error('Failed to fetch schedules:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching employee schedules:', error);
+    }
+  };
+
   // Fetch locations on component mount
   useEffect(() => {
     const fetchLocations = async () => {
@@ -61,19 +145,23 @@ export default function NewEmployeeClient() {
           setLocations(data.locations || []);
         }
       } catch (error) {
-        console.error('Error fetching locations:', error);
         toast.error('Failed to load locations');
       } finally {
         setLoadingLocations(false);
       }
     };
 
-    fetchLocations();
-  }, []);
+    if (isOpen) {
+      fetchLocations();
+    }
+  }, [isOpen]);
 
-  const handleGoBack = () => {
-    toast.info('Employee creation cancelled');
-    router.back();
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleServiceToggle = (service: string) => {
@@ -84,8 +172,6 @@ export default function NewEmployeeClient() {
         : [...prev.services, service]
     }));
   };
-
-
 
   const handleScheduleSave = (schedules: ScheduleDate[]) => {
     setFormData(prev => ({
@@ -98,102 +184,114 @@ export default function NewEmployeeClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Client-side validation
-    if (!formData.name.trim() || !formData.email.trim() || !formData.wechatUsername.trim()) {
-      toast.error('Please fill in all required fields');
+    if (!employee) return;
+
+    // Validation
+    if (!formData.name.trim()) {
+      toast.error('Name is required');
       return;
     }
-
+    if (!formData.email.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+    if (!formData.wechatUsername.trim()) {
+      toast.error('WeChat username is required');
+      return;
+    }
     if (formData.services.length === 0) {
-      toast.error('Please select at least one service');
+      toast.error('At least one service must be selected');
       return;
     }
 
-
-    
     setIsSubmitting(true);
-    setError(null);
-
-    // Show loading toast
-    const loadingToast = toast.loading('Creating employee...');
 
     try {
-      const response = await fetch('/api/dashboard/employees', {
-        method: 'POST',
+      const requestBody = {
+        name: formData.name,
+        email: formData.email,
+        wechatUsername: formData.wechatUsername,
+        phone: formData.phone,
+        status: formData.status,
+        services: formData.services,
+        scheduleDates: formData.scheduleDates
+      };
+      
+      const response = await fetch(`/api/dashboard/employees/${employee.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          selectedLocations: formData.scheduleDates.map(schedule => schedule.locationId)
-        }),
+        body: JSON.stringify(requestBody),
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
-        if (response.status === 409 && result.conflicts) {
-          throw new Error(`Schedule conflicts detected:\n${result.conflicts.join('\n')}`);
-        }
-        throw new Error(result.error || 'Failed to create employee');
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update employee');
       }
 
-      // Dismiss loading toast and show success
-      toast.dismiss(loadingToast);
+      toast.success(`Employee ${formData.name} updated successfully`);
       
-          // Check if schedules were set
-    const hasSchedules = formData.scheduleDates.length > 0;
-    
-    toast.success('Employee created successfully!', {
-      description: hasSchedules 
-        ? `${formData.name} has been added to your team and their schedule is now available in the weekly schedule.`
-        : `${formData.name} has been added to your team. You can set their schedule in the schedule section.`
-    });
+      // Refresh the employee data in the modal to show updated information
+      if (employee) {
+        await fetchEmployeeSchedules(employee.id);
+      }
       
-      // Small delay to ensure toast is visible before redirect
+      onSave();
+      setIsSaved(true);
+      
+      // Auto-close after 2 seconds to show updated data
       setTimeout(() => {
-        // Add a query parameter to trigger refresh
-        router.push('/dashboard/employees?refresh=true');
-      }, 1000);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage);
-      toast.dismiss(loadingToast);
-      toast.error(errorMessage);
+        setIsSaved(false);
+        onClose();
+      }, 2000);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update employee');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handleLocationCreated = () => {
+    // Refresh locations after creating a new one
+    const fetchLocations = async () => {
+      try {
+        const response = await fetch('/api/dashboard/locations');
+        if (response.ok) {
+          const data = await response.json();
+          setLocations(data.locations || []);
+        }
+      } catch (error) {
+        toast.error('Failed to load locations');
+      }
+    };
+    fetchLocations();
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-800">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Add New Employee</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-300">
-            Create a new employee profile and set up their services and schedule
-          </p>
-        </div>
+  if (!isOpen || !employee) return null;
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-              <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
-            </div>
-          )}
+  return (
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Edit Employee: {employee.name}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              disabled={isSubmitting}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Basic Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Full Name *
@@ -294,8 +392,6 @@ export default function NewEmployeeClient() {
               </div>
             </div>
 
-
-
             {/* Schedule */}
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -304,11 +400,13 @@ export default function NewEmployeeClient() {
                   type="button"
                   onClick={() => setShowCalendar(true)}
                   disabled={locations.length === 0}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
                 >
+                  <Calendar className="w-4 h-4 mr-2" />
                   {locations.length === 0 ? 'No Locations Available' : 'Set Schedule'}
                 </button>
               </div>
+              
               {locations.length === 0 && (
                 <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">
                   You need to create at least one location first.{' '}
@@ -341,6 +439,7 @@ export default function NewEmployeeClient() {
                       <div key={locationName} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-2">
+                            <MapPin className="w-4 h-4 text-gray-500" />
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {locationName}
                             </span>
@@ -348,109 +447,95 @@ export default function NewEmployeeClient() {
                               ({schedules.length} schedule{schedules.length !== 1 ? 's' : ''})
                             </span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFormData(prev => ({
-                                ...prev,
-                                scheduleDates: prev.scheduleDates.filter(s => s.locationName !== locationName)
-                              }));
-                            }}
-                            className="p-1 text-red-400 hover:text-red-600 text-xs"
-                          >
-                            Remove All
-                          </button>
                         </div>
                         <div className="space-y-1">
-                          {schedules
-                            .sort((a, b) => a.date.localeCompare(b.date))
-                            .slice(0, 3)
-                            .map((schedule) => (
-                              <div key={schedule.id} className="flex items-center justify-between text-xs">
-                                <span className="text-gray-600 dark:text-gray-400">
-                                  {new Date(schedule.date).toLocaleDateString()} • {schedule.startTime} - {schedule.endTime}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      scheduleDates: prev.scheduleDates.filter(s => s.id !== schedule.id)
-                                    }));
-                                  }}
-                                  className="p-1 text-red-400 hover:text-red-600"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ))}
-                          {schedules.length > 3 && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              ...and {schedules.length - 3} more schedule{schedules.length - 3 !== 1 ? 's' : ''}
+                          {schedules.map((schedule) => (
+                            <div key={schedule.id} className="flex items-center justify-between text-xs">
+                              <span className="text-gray-600 dark:text-gray-300">
+                                {new Date(schedule.date).toLocaleDateString()} • {schedule.startTime} - {schedule.endTime}
+                              </span>
                             </div>
-                          )}
+                          ))}
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  No schedule set. Click &quot;Set Schedule&quot; to add working dates and times.
-                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">No schedules set</p>
               )}
             </div>
 
-            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-600">
-              <button
-                type="button"
-                onClick={handleGoBack}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Creating...' : 'Create Employee'}
-              </button>
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+              {isSaved ? (
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center text-green-600 dark:text-green-400">
+                    <div className="w-4 h-4 mr-2">✓</div>
+                    <span className="text-sm font-medium">Changes saved successfully!</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Save Changes
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           </form>
         </div>
       </div>
 
       {/* Schedule Calendar Modal */}
-              <ScheduleCalendar
+      {showCalendar && (
+        <ScheduleCalendar
           isOpen={showCalendar}
           onClose={() => setShowCalendar(false)}
           onSave={handleScheduleSave}
-          employeeName={formData.name || 'New Employee'}
+          employeeName={employee.name}
           locations={locations}
           existingSchedules={formData.scheduleDates}
         />
-        
+      )}
+
+      {/* Create Location Modal */}
+      {showLocationModal && (
         <CreateLocationModal
           isOpen={showLocationModal}
           onClose={() => setShowLocationModal(false)}
-          onLocationCreated={() => {
-            // Refresh locations after creating a new one
-            const fetchLocations = async () => {
-              try {
-                const response = await fetch('/api/dashboard/locations');
-                if (response.ok) {
-                  const data = await response.json();
-                  setLocations(data.locations || []);
-                }
-              } catch (error) {
-                console.error('Error fetching locations:', error);
-              }
-            };
-            fetchLocations();
-          }}
+          onLocationCreated={handleLocationCreated}
         />
-    </div>
+      )}
+    </>
   );
 }
-

@@ -346,7 +346,7 @@ export const ChinesePaymentAndBilling = () => {
       <li>
         <h3>6.3 退款</h3>
         <br />
-        {/* TODO: Create a refund policy */}
+        {/* Refund policy to be implemented */}
         <p>
           退款政策（如果适用）将在单独的协议或我们的网站上概述。请查看这些政策，了解有关资格和申请退款流程的详细信息。
         </p>

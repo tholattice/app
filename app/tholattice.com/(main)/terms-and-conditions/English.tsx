@@ -433,7 +433,7 @@ export const EnglishPaymentAndBilling = () => {
       <li>
         <h3>6.3 Refunds</h3>
         <br />
-        {/* TODO: Create a refund policy */}
+        {/* Refund policy to be implemented */}
         <p>
           Refund policies, if applicable, will be outlined in separate
           agreements or on our website. Please review these policies for details

@@ -123,6 +123,7 @@ export const REALTIME_EVENTS = {
   CUSTOMER_UPDATED: 'customer_updated',
   EMPLOYEE_CREATED: 'employee_created',
   EMPLOYEE_UPDATED: 'employee_updated',
+  EMPLOYEE_DELETED: 'employee_deleted',
   REVENUE_UPDATED: 'revenue_updated',
   STATS_UPDATED: 'stats_updated',
   NOTIFICATION: 'notification',

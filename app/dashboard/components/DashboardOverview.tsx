@@ -33,7 +33,7 @@ const DashboardOverview = memo(function DashboardOverview({ initialStats }: Dash
   // Handle real-time stats updates
   useEffect(() => {
     if (lastEvent && lastEvent.type === 'stats_updated') {
-      console.log('Real-time stats update received:', lastEvent);
+      // Real-time stats update received
       
       // Update stats immediately when we receive a real-time update
       setStats(lastEvent.data);

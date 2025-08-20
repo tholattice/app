@@ -43,7 +43,7 @@ export default function CustomersClient() {
       lastEvent.type === 'customer_updated' ||
       lastEvent.type === 'stats_updated'
     )) {
-      console.log('Real-time event received:', lastEvent);
+      // Real-time event received
       
       // Refresh data immediately when we receive a real-time update
       fetchCustomers();
