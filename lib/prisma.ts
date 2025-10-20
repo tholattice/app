@@ -11,7 +11,7 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   datasources: {
     db: {
-      url: process.env.DATABASE_URL + "?connection_limit=1&pool_timeout=0&pgbouncer=true&connect_timeout=10&prepared_statements=false",
+      url: process.env.DATABASE_URL + "?connection_limit=1&pool_timeout=20&pgbouncer=true&connect_timeout=30&prepared_statements=false",
     },
   },
 });
