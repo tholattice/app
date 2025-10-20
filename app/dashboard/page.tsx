@@ -186,7 +186,7 @@ export default async function DashboardPage() {
 
   // Re-enable authentication
   if (!session?.user?.id) {
-    redirect("/tholattice.com/auth/login");
+    redirect("/login");
   }
 
   const userId = session.user.id;
