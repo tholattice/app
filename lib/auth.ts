@@ -46,13 +46,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     WeChatProvider as any,
   ],
   callbacks: {
-    async session({ session, user }) {
-      if (session.user && user?.id) {
-        session.user.id = user.id;
+    async session({ session, token }) {
+      // For JWT sessions, get user id from token
+      if (session.user && token?.id) {
+        session.user.id = token.id as string;
       }
       return session;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
+      // On sign in, add user id to token
       if (user) {
         token.id = user.id;
       }

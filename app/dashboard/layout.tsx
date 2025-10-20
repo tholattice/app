@@ -33,17 +33,17 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
 
-  // Temporarily bypass authentication check since Prisma adapter is disabled
-  // if (!session) {
-  //   redirect("/login");
-  // }
+  // Re-enable authentication check with JWT sessions
+  if (!session) {
+    redirect("/login");
+  }
 
   // Temporarily disable Stripe to avoid database errors
   // const { data: listCustomers } = await stripe.customers.list();
   const listCustomers: any[] = [];
 
   return (
-    <DashboardClientWrapper>
+    <DashboardClientWrapper session={session}>
       <DarkModeProvider>
         <div className={`${font.className} bg-white dark:bg-gray-900 transition-colors duration-200`}>
                   <div className="justify-between bg-white dark:bg-gray-900">
